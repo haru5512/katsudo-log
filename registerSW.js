@@ -1,1 +1,1 @@
-if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/schedule_manager/sw.js', { scope: '/schedule_manager/' })})}
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/katsudo-log/sw.js', { scope: '/katsudo-log/' })})}
