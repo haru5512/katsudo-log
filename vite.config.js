@@ -38,5 +38,5 @@ export default defineConfig({
       }
     })
   ],
-  base: '/schedule_manager/',
+  base: '/katsudo-log/',
 })
