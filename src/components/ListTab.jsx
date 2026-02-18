@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { formatDate, CATEGORY_ICONS, generateCalendarUrl } from '../utils';
+import { formatDate, buildCategoryIcons, generateCalendarUrl } from '../utils';
 import EditModal from './EditModal';
 
-function ListTab({ records, onUpdate, onDelete, onBulkDelete }) {
+function ListTab({ records, onUpdate, onDelete, onBulkDelete, categories }) {
     const [filterCat, setFilterCat] = useState('');
+
+    const categoryIcons = buildCategoryIcons(categories);
 
     // Default to current month
     const current = new Date();
@@ -79,14 +81,9 @@ function ListTab({ records, onUpdate, onDelete, onBulkDelete }) {
     }
     const availableMonths = rawMonths.sort((a, b) => b.localeCompare(a));
 
-    const categories = [
+    const filterCategories = [
         { name: '', label: 'すべて', icon: '' },
-        { name: '訪問', label: '訪問', icon: '🚶' },
-        { name: '会議', label: '会議', icon: '🤝' },
-        { name: 'イベント', label: 'イベント', icon: '🎪' },
-        { name: '資料作成', label: '資料作成', icon: '📝' },
-        { name: '事務作業', label: '事務作業', icon: '🗂️' },
-        { name: 'その他', label: 'その他', icon: '🌿' },
+        ...categories.map(c => ({ name: c.name, label: c.name, icon: c.icon })),
     ];
 
     const isAllSelected = displayedRecords.length > 0 && selectedIds.size === displayedRecords.length;
@@ -143,7 +140,7 @@ function ListTab({ records, onUpdate, onDelete, onBulkDelete }) {
                     </select>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxWidth: '100%', alignItems: 'center' }}>
-                    {categories.map((cat) => (
+                    {filterCategories.map((cat) => (
                         <button
                             key={cat.label}
                             className={`filter-btn ${filterCat === cat.name ? 'active' : ''}`}
@@ -234,7 +231,7 @@ function ListTab({ records, onUpdate, onDelete, onBulkDelete }) {
                                         {/* Top Row: Badge & Content */}
                                         <div className="log-top-row">
                                             <div>
-                                                <span className="log-cat-badge">{CATEGORY_ICONS[r.category]} {r.category}</span>
+                                                <span className="log-cat-badge">{categoryIcons[r.category] || '📌'} {r.category}</span>
                                                 <div className="log-content">{r.content}</div>
                                             </div>
                                         </div>
@@ -301,6 +298,7 @@ function ListTab({ records, onUpdate, onDelete, onBulkDelete }) {
                 record={editingRecord}
                 onClose={() => setEditingRecord(null)}
                 onSave={onUpdate}
+                categories={categories}
             />
         </div>
     );

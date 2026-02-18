@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
-import { formatDate, CATEGORY_ICONS } from '../utils';
+import { formatDate, buildCategoryIcons } from '../utils';
 
-function MonthlyTab({ records }) {
+function MonthlyTab({ records, categories }) {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [toastMsg, setToastMsg] = useState('');
     const [previewMode, setPreviewMode] = useState('report'); // 'report' or 'discord'
+
+    const categoryIcons = buildCategoryIcons(categories);
 
     const changeMonth = (dir) => {
         const newDate = new Date(currentMonth);
@@ -174,7 +176,7 @@ function MonthlyTab({ records }) {
                                                     {r.time || '--:--'}
                                                 </div>
                                                 <div className="monthly-content" style={{ flex: 1 }}>
-                                                    <span style={{ marginRight: '6px' }}>{CATEGORY_ICONS[r.category]}</span>
+                                                    <span style={{ marginRight: '6px' }}>{categoryIcons[r.category] || '📌'}</span>
                                                     <span style={{
                                                         fontWeight: '500',
                                                         marginRight: '8px',

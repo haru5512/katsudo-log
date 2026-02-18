@@ -3,7 +3,7 @@ import { toDateStr, toTimeStr, generateCalendarUrl } from '../utils';
 import { SpeechRecognizer } from '../utils/speechRecognition';
 import { parseVoiceInput } from '../utils/geminiParser';
 
-function RecordTab({ onAdd, gasUrl }) {
+function RecordTab({ onAdd, gasUrl, categories }) {
     const [date, setDate] = useState('');
     const [time, setTime] = useState('');
     const [category, setCategory] = useState('');
@@ -141,15 +141,6 @@ function RecordTab({ onAdd, gasUrl }) {
 
         recognizerRef.current.start();
     };
-
-    const categories = [
-        { name: '訪問', icon: '🚶' },
-        { name: '会議', icon: '🤝' },
-        { name: 'イベント', icon: '🎪' },
-        { name: '資料作成', icon: '📝' },
-        { name: '事務作業', icon: '🗂️' },
-        { name: 'その他', icon: '🌿' },
-    ];
 
     return (
         <div className="page active">

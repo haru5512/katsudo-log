@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { WEEKDAYS } from './utils';
+import { WEEKDAYS, loadCategories, saveCategories } from './utils';
 import RecordTab from './components/RecordTab';
 import ListTab from './components/ListTab';
 import MonthlyTab from './components/MonthlyTab';
@@ -11,13 +11,14 @@ function App() {
     const saved = localStorage.getItem('activity_records');
     return saved ? JSON.parse(saved) : [];
   });
+  const [categories, setCategories] = useState(() => loadCategories());
   const [headerDate, setHeaderDate] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [gasUrl, setGasUrl] = useState(() => localStorage.getItem('gas_webapp_url') || '');
   const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
-    console.log('App Version: 1.3.0 (Reset Feature)'); // Debug for deployment
+    console.log('App Version: 2.0.0 (Customizable Categories)'); // Debug for deployment
     const now = new Date();
     const wd = WEEKDAYS[now.getDay()];
     setHeaderDate(`${now.getMonth() + 1}月${now.getDate()}日（${wd}）`);
@@ -161,7 +162,13 @@ function App() {
     localStorage.removeItem('activity_records');
     localStorage.removeItem('gas_webapp_url');
     localStorage.removeItem('spreadsheet_url');
+    // Note: categories are NOT reset (user preference)
     console.log('[App] Reset complete: all local data cleared');
+  };
+
+  const handleCategoriesChange = (newCategories) => {
+    setCategories(newCategories);
+    saveCategories(newCategories);
   };
 
   // Responsive check
@@ -227,7 +234,7 @@ function App() {
       <div className="main">
         {/* Record Panel: Visible if tab is record OR if on desktop (side panel) */}
         <div className="panel-record" style={{ display: (activeTab === 'record' || isDesktop) ? 'block' : 'none' }}>
-          <RecordTab onAdd={addRecord} gasUrl={gasUrl} />
+          <RecordTab onAdd={addRecord} gasUrl={gasUrl} categories={categories} />
         </div>
 
         {/* Content Panel: Visible if tab is NOT record OR if on desktop (main panel) */}
@@ -238,10 +245,11 @@ function App() {
               onUpdate={updateRecord}
               onDelete={deleteRecord}
               onBulkDelete={bulkDeleteRecords}
+              categories={categories}
             />
           )}
           {activeTab === 'monthly' && (
-            <MonthlyTab records={records} />
+            <MonthlyTab records={records} categories={categories} />
           )}
         </div>
       </div>
@@ -253,6 +261,8 @@ function App() {
         onImportCompleted={handleImportCompleted}
         onReset={handleReset}
         gasUrl={gasUrl}
+        categories={categories}
+        onCategoriesChange={handleCategoriesChange}
       />
     </>
   );

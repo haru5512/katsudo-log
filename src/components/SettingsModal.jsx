@@ -1,15 +1,28 @@
 import { useState, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
+import { CATEGORY_PRESETS, DEFAULT_CATEGORIES } from '../utils';
 
-function SettingsModal({ isOpen, onClose, onSaveUrl, onImportCompleted, onReset, gasUrl: propGasUrl }) {
+function SettingsModal({ isOpen, onClose, onSaveUrl, onImportCompleted, onReset, gasUrl: propGasUrl, categories, onCategoriesChange }) {
     const [url, setUrl] = useState('');
     const [showQr, setShowQr] = useState(false);
+
+    // Category Editor State
+    const [showCategoryEditor, setShowCategoryEditor] = useState(false);
+    const [editCategories, setEditCategories] = useState([]);
+    const [newCatName, setNewCatName] = useState('');
+    const [newCatIcon, setNewCatIcon] = useState('📌');
 
     useEffect(() => {
         // Sync with prop or localStorage
         const saved = localStorage.getItem('gas_webapp_url');
         setUrl(saved || propGasUrl || '');
     }, [isOpen, propGasUrl]);
+
+    useEffect(() => {
+        if (isOpen && categories) {
+            setEditCategories(categories.map(c => ({ ...c })));
+        }
+    }, [isOpen, categories]);
 
     if (!isOpen) return null;
 
@@ -25,19 +38,53 @@ function SettingsModal({ isOpen, onClose, onSaveUrl, onImportCompleted, onReset,
     // Use the saved URL for import, falling back to state
     const targetUrl = propGasUrl || url;
 
+    // Category Handlers
+    const commonEmojis = ['📌', '🚶', '🤝', '🎪', '📝', '🗂️', '🌿', '💼', '🚗', '📖', '✏️', '🏃', '💰', '🎓', '🏠', '💻', '📞', '🎨', '🔧', '📊'];
+
+    const handleAddCategory = () => {
+        const name = newCatName.trim();
+        if (!name) { alert('カテゴリ名を入力してください'); return; }
+        if (editCategories.some(c => c.name === name)) { alert('同じ名前のカテゴリがすでに存在します'); return; }
+        if (editCategories.length >= 10) { alert('カテゴリは最大10個までです'); return; }
+        setEditCategories([...editCategories, { name, icon: newCatIcon }]);
+        setNewCatName('');
+        setNewCatIcon('📌');
+    };
+
+    const handleRemoveCategory = (index) => {
+        if (editCategories.length <= 1) { alert('カテゴリは最低1つ必要です'); return; }
+        setEditCategories(editCategories.filter((_, i) => i !== index));
+    };
+
+    const handleApplyPreset = (presetKey) => {
+        const preset = CATEGORY_PRESETS[presetKey];
+        if (preset && window.confirm(`「${preset.label}」プリセットに変更しますか？\n現在のカテゴリは上書きされます。`)) {
+            setEditCategories(preset.categories.map(c => ({ ...c })));
+        }
+    };
+
+    const handleSaveCategories = () => {
+        if (editCategories.length === 0) { alert('カテゴリは最低1つ必要です'); return; }
+        onCategoriesChange(editCategories);
+        setShowCategoryEditor(false);
+    };
+
     return (
         <div className="modal-overlay" style={{
             display: 'flex', position: 'fixed', inset: 0, zIndex: 200,
-            background: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center'
+            background: 'rgba(0,0,0,0.45)', alignItems: 'flex-end', justifyContent: 'center'
         }} onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
             <div style={{
-                background: 'white', width: '90%', maxWidth: '400px', borderRadius: '16px',
-                padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-                maxHeight: '90vh', overflowY: 'auto'
+                background: 'white', width: '100%', maxWidth: '400px', borderRadius: '20px 20px 0 0',
+                padding: '24px 20px 36px', boxShadow: '0 -4px 30px rgba(0,0,0,0.15)',
+                maxHeight: '85vh', overflowY: 'auto'
             }}>
-                <h3 style={{ fontFamily: "'Shippori Mincho',serif", fontSize: '18px', color: 'var(--forest)', marginBottom: '16px' }}>
-                    ⚙️ 設定 (Google連携)
-                </h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h3 style={{ fontFamily: "'Shippori Mincho',serif", fontSize: '18px', color: 'var(--forest)', margin: 0 }}>
+                        ⚙️ 設定 (Google連携)
+                    </h3>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '24px', color: '#aaa', cursor: 'pointer', padding: '0 8px' }}>✕</button>
+                </div>
 
                 <label>GAS WebアプリのURL</label>
                 <input
@@ -75,8 +122,7 @@ function SettingsModal({ isOpen, onClose, onSaveUrl, onImportCompleted, onReset,
                 )}
 
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <button className="btn-secondary" onClick={onClose} style={{ flex: 1, margin: 0 }}>キャンセル</button>
-                    <button className="btn-primary" onClick={handleSave} style={{ flex: 1 }}>保存</button>
+                    <button className="btn-primary" onClick={handleSave} style={{ flex: 1 }}>設定を保存</button>
                 </div>
 
                 {url && (
@@ -110,6 +156,88 @@ function SettingsModal({ isOpen, onClose, onSaveUrl, onImportCompleted, onReset,
                         📊 スプレッドシートを開く
                     </button>
                 )}
+
+                {/* ── Category Editor Section ── */}
+                <div style={{ marginTop: '30px', borderTop: '2px solid #eee', paddingTop: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <h4 style={{ margin: 0, color: 'var(--soil)', fontSize: '14px' }}>🏷️ カテゴリ設定</h4>
+                        <button onClick={() => setShowCategoryEditor(!showCategoryEditor)}
+                            style={{ background: 'none', border: 'none', color: 'var(--forest)', textDecoration: 'underline', cursor: 'pointer', fontSize: '13px' }}
+                        >{showCategoryEditor ? '閉じる' : '編集する'}</button>
+                    </div>
+
+                    {!showCategoryEditor ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {categories && categories.map(c => (
+                                <span key={c.name} style={{
+                                    padding: '4px 10px', background: '#f4f7f6', borderRadius: '12px',
+                                    fontSize: '13px', color: 'var(--forest)'
+                                }}>{c.icon} {c.name}</span>
+                            ))}
+                        </div>
+                    ) : (
+                        <div>
+                            {/* Presets */}
+                            <div style={{ marginBottom: '16px' }}>
+                                <div style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>プリセットから選択：</div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {Object.entries(CATEGORY_PRESETS).map(([key, preset]) => (
+                                        <button key={key} onClick={() => handleApplyPreset(key)}
+                                            style={{
+                                                padding: '4px 10px', fontSize: '12px', borderRadius: '12px',
+                                                border: '1px solid #ddd', background: '#fafafa', cursor: 'pointer', color: '#555'
+                                            }}
+                                        >{preset.label}</button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Current Categories List */}
+                            <div style={{ marginBottom: '12px' }}>
+                                {editCategories.map((cat, i) => (
+                                    <div key={i} style={{
+                                        display: 'flex', alignItems: 'center', gap: '8px',
+                                        padding: '6px 8px', borderBottom: '1px solid #f0f0f0'
+                                    }}>
+                                        <span style={{ fontSize: '18px', width: '28px', textAlign: 'center' }}>{cat.icon}</span>
+                                        <span style={{ flex: 1, fontSize: '14px' }}>{cat.name}</span>
+                                        <button onClick={() => handleRemoveCategory(i)}
+                                            style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: '16px', padding: '2px 6px' }}
+                                            title="削除"
+                                        >✕</button>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Add New Category */}
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '12px' }}>
+                                <select value={newCatIcon} onChange={(e) => setNewCatIcon(e.target.value)}
+                                    style={{ width: '50px', padding: '6px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '16px', textAlign: 'center' }}
+                                >
+                                    {commonEmojis.map(e => (
+                                        <option key={e} value={e}>{e}</option>
+                                    ))}
+                                </select>
+                                <input type="text" placeholder="新しいカテゴリ名"
+                                    value={newCatName} onChange={(e) => setNewCatName(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') handleAddCategory(); }}
+                                    style={{ flex: 1, padding: '6px 8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '13px' }}
+                                    lang="ja" inputMode="text"
+                                />
+                                <button onClick={handleAddCategory}
+                                    style={{
+                                        padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--forest)',
+                                        background: 'var(--forest)', color: 'white', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap'
+                                    }}
+                                >追加</button>
+                            </div>
+
+                            <button className="btn-primary" onClick={handleSaveCategories}
+                                style={{ width: '100%', fontSize: '13px' }}
+                            >カテゴリを保存する</button>
+                        </div>
+                    )}
+                </div>
 
                 {url && (
                     <div style={{ marginTop: '30px', borderTop: '2px solid #eee', paddingTop: '20px' }}>

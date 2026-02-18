@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-function EditModal({ record, isOpen, onClose, onSave }) {
+function EditModal({ record, isOpen, onClose, onSave, categories }) {
     const [formData, setFormData] = useState({
         date: '', time: '', category: '', content: '', place: '', count: '', note: ''
     });
@@ -47,15 +47,6 @@ function EditModal({ record, isOpen, onClose, onSave }) {
         });
         onClose();
     };
-
-    const categories = [
-        { name: '訪問', icon: '🚶' },
-        { name: '会議', icon: '🤝' },
-        { name: 'イベント', icon: '🎪' },
-        { name: '資料作成', icon: '📝' },
-        { name: '事務作業', icon: '🗂️' },
-        { name: 'その他', icon: '🌿' },
-    ];
 
     return (
         <div id="editModal" style={{
