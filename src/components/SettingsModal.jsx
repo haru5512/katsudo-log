@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { CATEGORY_PRESETS, DEFAULT_CATEGORIES } from '../utils';
+import { CATEGORY_PRESETS, DEFAULT_CATEGORIES, THEMES } from '../utils';
 
-function SettingsModal({ isOpen, onClose, onSaveUrl, onImportCompleted, onReset, gasUrl: propGasUrl, categories, onCategoriesChange }) {
+function SettingsModal({ isOpen, onClose, onSaveUrl, onImportCompleted, onReset, gasUrl: propGasUrl, categories, onCategoriesChange, currentTheme, onThemeChange, appTitle, onTitleChange }) {
     const [url, setUrl] = useState('');
     const [showQr, setShowQr] = useState(false);
 
@@ -157,6 +157,61 @@ function SettingsModal({ isOpen, onClose, onSaveUrl, onImportCompleted, onReset,
                     </button>
                 )}
 
+                {/* ── App Title Section ── */}
+                <div style={{ marginTop: '24px', borderTop: '2px solid #eee', paddingTop: '20px' }}>
+                    <h4 style={{ margin: '0 0 10px', color: 'var(--forest)', fontSize: '14px' }}>📱 アプリ名</h4>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <input
+                            type="text"
+                            value={appTitle}
+                            onChange={(e) => onTitleChange(e.target.value)}
+                            placeholder="📓 LogNote"
+                            style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1.5px solid rgba(45,90,61,0.2)', fontSize: '14px', marginBottom: 0 }}
+                            maxLength={20}
+                        />
+                        <button
+                            onClick={() => onTitleChange('📓 LogNote')}
+                            style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid #ddd', background: '#f8f8f8', fontSize: '12px', color: '#888', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        >リセット</button>
+                    </div>
+                </div>
+
+                {/* ── Theme Selector Section ── */}
+                <div style={{ marginTop: '24px', borderTop: '2px solid #eee', paddingTop: '20px' }}>
+                    <h4 style={{ margin: '0 0 12px', color: 'var(--forest)', fontSize: '14px' }}>🎨 テーマ設定</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+                        {Object.entries(THEMES).map(([key, theme]) => {
+                            const isActive = currentTheme === key;
+                            return (
+                                <button
+                                    key={key}
+                                    onClick={() => onThemeChange(key)}
+                                    style={{
+                                        position: 'relative',
+                                        padding: '10px 4px 8px',
+                                        borderRadius: '12px',
+                                        border: isActive ? '2px solid var(--forest)' : '2px solid #e0e0e0',
+                                        background: isActive ? 'var(--mist)' : '#fafafa',
+                                        cursor: 'pointer',
+                                        textAlign: 'center',
+                                        transition: 'all 0.2s',
+                                        boxShadow: isActive ? '0 0 0 2px var(--leaf)' : 'none',
+                                    }}
+                                >
+                                    {isActive && (
+                                        <span style={{
+                                            position: 'absolute', top: '2px', right: '4px',
+                                            fontSize: '9px', color: 'var(--forest)', fontWeight: 'bold'
+                                        }}>✓</span>
+                                    )}
+                                    <div style={{ fontSize: '20px', marginBottom: '4px' }}>{theme.emoji}</div>
+                                    <div style={{ fontSize: '9px', color: '#666', lineHeight: 1.2 }}>{theme.label}</div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
                 {/* ── Category Editor Section ── */}
                 <div style={{ marginTop: '30px', borderTop: '2px solid #eee', paddingTop: '20px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
@@ -193,7 +248,10 @@ function SettingsModal({ isOpen, onClose, onSaveUrl, onImportCompleted, onReset,
                             </div>
 
                             {/* Current Categories List */}
-                            <div style={{ marginBottom: '12px' }}>
+                            <div style={{ marginBottom: '4px' }}>
+                                <div style={{ fontSize: '10px', color: '#aaa', marginBottom: '6px', paddingLeft: '4px' }}>
+                                    📊 = 月報に件数を表示するカテゴリ
+                                </div>
                                 {editCategories.map((cat, i) => (
                                     <div key={i} style={{
                                         display: 'flex', alignItems: 'center', gap: '8px',
@@ -201,6 +259,22 @@ function SettingsModal({ isOpen, onClose, onSaveUrl, onImportCompleted, onReset,
                                     }}>
                                         <span style={{ fontSize: '18px', width: '28px', textAlign: 'center' }}>{cat.icon}</span>
                                         <span style={{ flex: 1, fontSize: '14px' }}>{cat.name}</span>
+                                        <button
+                                            onClick={() => {
+                                                const updated = editCategories.map((c, j) =>
+                                                    j === i ? { ...c, countStat: !c.countStat } : c
+                                                );
+                                                setEditCategories(updated);
+                                            }}
+                                            title="月報の集計対象に含める"
+                                            style={{
+                                                padding: '2px 6px', fontSize: '12px', borderRadius: '4px',
+                                                border: cat.countStat ? '1px solid var(--forest)' : '1px solid #ddd',
+                                                background: cat.countStat ? 'var(--forest)' : '#fafafa',
+                                                color: cat.countStat ? 'white' : '#bbb',
+                                                cursor: 'pointer',
+                                            }}
+                                        >📊</button>
                                         <button onClick={() => handleRemoveCategory(i)}
                                             style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: '16px', padding: '2px 6px' }}
                                             title="削除"

@@ -5,8 +5,21 @@ function MonthlyTab({ records, categories }) {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [toastMsg, setToastMsg] = useState('');
     const [previewMode, setPreviewMode] = useState('report'); // 'report' or 'discord'
+    const [showOutputOptions, setShowOutputOptions] = useState(false);
+    const [outputOptions, setOutputOptions] = useState(() => {
+        try {
+            const saved = localStorage.getItem('output_options');
+            return saved ? JSON.parse(saved) : { place: true, note: true, count: true };
+        } catch { return { place: true, note: true, count: true }; }
+    });
 
     const categoryIcons = buildCategoryIcons(categories);
+
+    const toggleOption = (key) => {
+        const updated = { ...outputOptions, [key]: !outputOptions[key] };
+        setOutputOptions(updated);
+        localStorage.setItem('output_options', JSON.stringify(updated));
+    };
 
     const changeMonth = (dir) => {
         const newDate = new Date(currentMonth);
@@ -18,58 +31,56 @@ function MonthlyTab({ records, categories }) {
         const y = currentMonth.getFullYear();
         const m = currentMonth.getMonth() + 1;
 
-        // Filter records for current month
         const allMonthRecs = records.filter(r => {
             const d = new Date(r.date);
             return d.getFullYear() === y && d.getMonth() + 1 === m;
         }).sort((a, b) => a.date > b.date ? 1 : -1);
 
-        // Filter for specific uses
-        // reportRecs: used for Stats and Export Text (excludes 'excludeFromReport' items)
         const reportRecs = allMonthRecs.filter(r => !r.excludeFromReport);
 
-        // Stats (using reportRecs)
         const days = new Set(reportRecs.map(r => r.date)).size;
-        const events = reportRecs.filter(r => ['イベント'].includes(r.category)).length;
         const people = reportRecs.reduce((sum, r) => sum + (r.count || 0), 0);
 
-        // Export Text (Full Month) - using reportRecs
+        // countStat: true のカテゴリごとに件数を集計
+        const statCategories = categories
+            ? categories.filter(c => c.countStat)
+            : [];
+        const categoryCounts = statCategories.map(cat => ({
+            name: cat.name,
+            icon: cat.icon,
+            count: reportRecs.filter(r => r.category === cat.name).length,
+        }));
+
         const daysInMonth = new Date(y, m, 0).getDate();
         const exportLines = [];
         const discordLines = [`**【${y}年${m}月 活動報告】**\n`];
 
         for (let d = 1; d <= daysInMonth; d++) {
-            const dateObj = new Date(y, m - 1, d);
             const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             const { m: mm, day: dd, wd: w } = formatDate(dateStr);
             const dateHeader = `${mm}/${dd}(${w})`;
-
-            // Find records for this day (from reportRecs)
             const dayRecs = reportRecs.filter(r => r.date === dateStr);
 
-            // Generate content string
+            // 報告書フォーマット（outputOptionsで制御）
             let content = '';
             if (dayRecs.length > 0) {
                 content = dayRecs.map(r => {
                     let line = r.content;
-                    if (r.place) line += `（${r.place}）`;
+                    if (outputOptions.place && r.place) line += `（${r.place}）`;
+                    const extras = [];
+                    if (outputOptions.count && r.count) extras.push(`👥${r.count}名`);
+                    if (outputOptions.note && r.note) extras.push(`※${r.note}`);
+                    if (extras.length > 0) line += ` ${extras.join(' ')}`;
                     return line;
                 }).join('、');
             }
-
-            // 1. Daily Report Format (Content Only - Single Column)
             exportLines.push(content);
 
-            // 2. Discord Format (Rich Text - All Days)
+            // Discordフォーマット（メモ・人数は含めない）
             discordLines.push(`**${dateHeader}**`);
             if (dayRecs.length > 0) {
                 dayRecs.forEach(r => {
-                    const parts = [r.content];
-                    // User requested to remove Place and Time. Time was not here, Place is here.
-                    // if (r.place) parts.push(`📍${r.place}`);
-                    if (r.count) parts.push(`👥${r.count}名`);
-                    if (r.note) parts.push(`(Note: ${r.note})`);
-                    discordLines.push(`> ・${parts.join(' ')}`);
+                    discordLines.push(`> ・${r.content}`);
                 });
             }
             discordLines.push('');
@@ -78,8 +89,9 @@ function MonthlyTab({ records, categories }) {
         const text = exportLines.join('\n');
         const discord = discordLines.join('\n');
 
-        return { monthRecs: allMonthRecs, stats: { days, events, people }, exportText: text, discordText: discord };
-    }, [records, currentMonth]);
+        return { monthRecs: allMonthRecs, stats: { days, people, categoryCounts }, exportText: text, discordText: discord };
+    }, [records, currentMonth, outputOptions, categories]);
+
 
     const copyToClipboard = (text, label) => {
         navigator.clipboard.writeText(text).then(() => {
@@ -122,10 +134,12 @@ function MonthlyTab({ records, categories }) {
                         <div className="stat-num">{stats.days}</div>
                         <div className="stat-label">活動日数</div>
                     </div>
-                    <div className="stat-card">
-                        <div className="stat-num">{stats.events}</div>
-                        <div className="stat-label">イベント数</div>
-                    </div>
+                    {stats.categoryCounts && stats.categoryCounts.map(cat => (
+                        <div className="stat-card" key={cat.name}>
+                            <div className="stat-num">{cat.icon} {cat.count}</div>
+                            <div className="stat-label">{cat.name}</div>
+                        </div>
+                    ))}
                     <div className="stat-card">
                         <div className="stat-num">{stats.people}</div>
                         <div className="stat-label">延べ参加者</div>
@@ -207,37 +221,102 @@ function MonthlyTab({ records, categories }) {
             <div className="card">
                 <div className="card-title">
                     <span>出力</span>
-                    <div className="toggle-group" style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
+                    <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', alignItems: 'center' }}>
+                        {/* 表示項目ボタン（報告書モードのみ） */}
+                        {previewMode === 'report' && (() => {
+                            const checkedCount = Object.values(outputOptions).filter(Boolean).length;
+                            const totalCount = Object.keys(outputOptions).length;
+                            const allChecked = checkedCount === totalCount;
+                            return (
+                                <button
+                                    onClick={() => setShowOutputOptions(v => !v)}
+                                    style={{
+                                        padding: '4px 8px', fontSize: '11px', borderRadius: '4px',
+                                        border: `1px solid ${showOutputOptions ? 'var(--forest)' : '#aaa'}`,
+                                        background: showOutputOptions ? 'var(--mist)' : 'white',
+                                        color: showOutputOptions ? 'var(--forest)' : '#555',
+                                        cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: '5px'
+                                    }}
+                                >
+                                    ⚙️ 表示項目
+                                    <span style={{
+                                        display: 'inline-block',
+                                        minWidth: '18px',
+                                        padding: '0 4px',
+                                        borderRadius: '10px',
+                                        background: allChecked ? 'var(--forest)' : '#f0a500',
+                                        color: 'white',
+                                        fontSize: '10px',
+                                        fontWeight: 'bold',
+                                        textAlign: 'center',
+                                        lineHeight: '18px',
+                                    }}>
+                                        {checkedCount}/{totalCount}
+                                    </span>
+                                </button>
+                            );
+                        })()}
                         <button
                             onClick={() => setPreviewMode('report')}
                             style={{
-                                padding: '4px 8px',
-                                fontSize: '11px',
-                                borderRadius: '4px',
+                                padding: '4px 8px', fontSize: '11px', borderRadius: '4px',
                                 border: '1px solid var(--forest)',
                                 background: previewMode === 'report' ? 'var(--forest)' : 'white',
-                                color: previewMode === 'report' ? 'white' : 'var(--forest)',
-                                cursor: 'pointer'
+                                color: previewMode === 'report' ? 'white' : 'var(--forest)', cursor: 'pointer'
                             }}
-                        >
-                            報告書
-                        </button>
+                        >報告書</button>
                         <button
                             onClick={() => setPreviewMode('discord')}
                             style={{
-                                padding: '4px 8px',
-                                fontSize: '11px',
-                                borderRadius: '4px',
+                                padding: '4px 8px', fontSize: '11px', borderRadius: '4px',
                                 border: '1px solid #5865F2',
                                 background: previewMode === 'discord' ? '#5865F2' : 'white',
-                                color: previewMode === 'discord' ? 'white' : '#5865F2',
-                                cursor: 'pointer'
+                                color: previewMode === 'discord' ? 'white' : '#5865F2', cursor: 'pointer'
                             }}
-                        >
-                            Discord
-                        </button>
+                        >Discord</button>
                     </div>
                 </div>
+
+                {/* 表示項目パネル（報告書モードのみ） */}
+                {showOutputOptions && previewMode === 'report' && (
+                    <div style={{
+                        display: 'flex', gap: '8px', flexWrap: 'wrap',
+                        padding: '10px 12px', background: '#f8f8f8',
+                        borderRadius: '8px', marginBottom: '10px', fontSize: '13px'
+                    }}>
+                        {[
+                            { key: 'place', label: '📍 場所' },
+                            { key: 'count', label: '👥 人数' },
+                            { key: 'note', label: '📝 メモ' },
+                        ].map(({ key, label }) => {
+                            const isOn = outputOptions[key];
+                            return (
+                                <button
+                                    key={key}
+                                    onClick={() => toggleOption(key)}
+                                    style={{
+                                        padding: '5px 12px',
+                                        borderRadius: '20px',
+                                        fontSize: '12px',
+                                        cursor: 'pointer',
+                                        border: isOn ? '1.5px solid var(--forest)' : '1.5px solid #ccc',
+                                        background: isOn ? 'var(--forest)' : '#f0f0f0',
+                                        color: isOn ? 'white' : '#888',
+                                        fontWeight: isOn ? 'bold' : 'normal',
+                                        display: 'flex', alignItems: 'center', gap: '4px',
+                                        transition: 'all 0.15s',
+                                        userSelect: 'none',
+                                    }}
+                                >
+                                    {isOn ? '✓' : '　'}{label}
+                                </button>
+                            );
+                        })}
+                        <div style={{ fontSize: '10px', color: '#aaa', width: '100%', marginTop: '4px' }}>※ Discord出力ではメモ・人数は含まれません</div>
+                    </div>
+                )}
+
                 <div className="export-area" style={{ maxHeight: '150px', overflowY: 'auto', fontSize: '12px' }}>
                     {previewMode === 'report' ? exportText : discordText}
                 </div>
@@ -246,7 +325,7 @@ function MonthlyTab({ records, categories }) {
                 </button>
                 {previewMode === 'report' && (
                     <div style={{ marginTop: '8px', padding: '8px 12px', background: '#fff3cd', borderRadius: '8px', fontSize: '11px', color: '#856404', lineHeight: '1.5' }}>
-                        💡 <strong>報告書への貼り付け方：</strong>スプレッドシートの<strong>活動内容列の最初のセル</strong>（例：C9）を選択して貼り付けてください。日と曜日はそのまま残ります。
+                        💡 <strong>報告書への貼り付け方：</strong>スプレッドシートの<strong>活動内容列の最初のセル</strong>（例：C9）を選択して貼り付けてください。
                     </div>
                 )}
             </div>

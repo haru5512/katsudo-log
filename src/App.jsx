@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { WEEKDAYS, loadCategories, saveCategories } from './utils';
+import { WEEKDAYS, loadCategories, saveCategories, loadTheme, saveTheme, applyTheme, DEFAULT_CATEGORIES } from './utils';
 import RecordTab from './components/RecordTab';
 import ListTab from './components/ListTab';
 import MonthlyTab from './components/MonthlyTab';
@@ -16,6 +16,14 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [gasUrl, setGasUrl] = useState(() => localStorage.getItem('gas_webapp_url') || '');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState(() => {
+    const saved = loadTheme();
+    applyTheme(saved);
+    return saved;
+  });
+  const [appTitle, setAppTitle] = useState(
+    () => localStorage.getItem('app_title') || '📓 LogNote'
+  );
 
   useEffect(() => {
     console.log('App Version: 2.0.0 (Customizable Categories)'); // Debug for deployment
@@ -159,16 +167,30 @@ function App() {
   const handleReset = () => {
     setRecords([]);
     setGasUrl('');
+    setCategories(DEFAULT_CATEGORIES);
+    setAppTitle('📓 LogNote');
+    applyTheme('forest');
+    saveTheme('forest');
+    setCurrentTheme('forest');
     localStorage.removeItem('activity_records');
     localStorage.removeItem('gas_webapp_url');
     localStorage.removeItem('spreadsheet_url');
-    // Note: categories are NOT reset (user preference)
+    localStorage.removeItem('custom_categories');
+    localStorage.removeItem('app_title');
+    localStorage.removeItem('app_theme');
+    localStorage.removeItem('output_options');
     console.log('[App] Reset complete: all local data cleared');
   };
 
   const handleCategoriesChange = (newCategories) => {
     setCategories(newCategories);
     saveCategories(newCategories);
+  };
+
+  const handleThemeChange = (themeKey) => {
+    applyTheme(themeKey);
+    saveTheme(themeKey);
+    setCurrentTheme(themeKey);
   };
 
   // Responsive check
@@ -192,7 +214,7 @@ function App() {
       <div className="header">
         <div className="header-top">
           <div>
-            <div className="app-title">🌱 活動記録</div>
+            <div className="app-title">{appTitle}</div>
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {isSyncing && <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.8)' }}>⟳ Sync...</span>}
@@ -263,6 +285,13 @@ function App() {
         gasUrl={gasUrl}
         categories={categories}
         onCategoriesChange={handleCategoriesChange}
+        currentTheme={currentTheme}
+        onThemeChange={handleThemeChange}
+        appTitle={appTitle}
+        onTitleChange={(title) => {
+          setAppTitle(title);
+          localStorage.setItem('app_title', title);
+        }}
       />
     </>
   );
