@@ -145,7 +145,7 @@ function RecordTab({ onAdd, gasUrl, categories }) {
     return (
         <div className="page active">
             <div className="card">
-                <div className="card-title">今日の活動を記録</div>
+                <div className="card-title">今日の記録</div>
 
                 <label>日付・時間</label>
                 <div className="sub-row">
