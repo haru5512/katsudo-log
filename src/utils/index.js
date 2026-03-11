@@ -194,27 +194,29 @@ export function generateCalendarUrl(record) {
     const { date, time, content, place, note, category } = record;
     if (!date) return '';
 
-    let startDateTime = date.replace(/-/g, '');
-    if (time) {
-        startDateTime += 'T' + time.replace(':', '') + '00';
+    function fmtDateUTC(d) {
+        return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`;
+    }
+    function fmtTimeUTC(d) {
+        return `${String(d.getUTCHours()).padStart(2, '0')}${String(d.getUTCMinutes()).padStart(2, '0')}00`;
     }
 
-    let endDateTime = '';
-    function fmtDate(d) {
-        return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-    }
-    function fmtTime(d) {
-        return `${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}00`;
-    }
+    let startStr, endStr;
 
     if (time) {
-        const d = new Date(`${date}T${time}`);
-        d.setHours(d.getHours() + 1);
-        endDateTime = fmtDate(d) + 'T' + fmtTime(d);
+        // ローカル時刻としてパースしてUTCに変換
+        const start = new Date(`${date}T${time}:00`);
+        const end = new Date(start.getTime() + 60 * 60 * 1000); // +1時間
+        startStr = fmtDateUTC(start) + 'T' + fmtTimeUTC(start) + 'Z';
+        endStr = fmtDateUTC(end) + 'T' + fmtTimeUTC(end) + 'Z';
     } else {
-        const d = new Date(date);
-        d.setDate(d.getDate() + 1);
-        endDateTime = fmtDate(d);
+        // 終日イベント（日付のみ、Zなし）
+        const [y, m, d] = date.split('-').map(Number);
+        const startDate = new Date(Date.UTC(y, m - 1, d));
+        const endDate = new Date(Date.UTC(y, m - 1, d + 1));
+        const fmtD = (dt) => `${dt.getUTCFullYear()}${String(dt.getUTCMonth() + 1).padStart(2, '0')}${String(dt.getUTCDate()).padStart(2, '0')}`;
+        startStr = fmtD(startDate);
+        endStr = fmtD(endDate);
     }
 
     const details = `${note || ''}\n\n[カテゴリー] ${category}`;
@@ -223,10 +225,11 @@ export function generateCalendarUrl(record) {
     const params = new URLSearchParams({
         action: 'TEMPLATE',
         text: `【${category}】${content}`,
-        dates: `${startDateTime}/${endDateTime}`,
+        dates: `${startStr}/${endStr}`,
         details: details,
         location: location,
     });
 
     return `https://www.google.com/calendar/render?${params.toString()}`;
 }
+
