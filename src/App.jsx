@@ -190,6 +190,7 @@ function App() {
     applyTheme('forest');
     saveTheme('forest');
     setCurrentTheme('forest');
+    setShowOnboarding(true);
     localStorage.removeItem('activity_records');
     localStorage.removeItem('gas_webapp_url');
     localStorage.removeItem('spreadsheet_url');
@@ -197,7 +198,10 @@ function App() {
     localStorage.removeItem('app_title');
     localStorage.removeItem('app_theme');
     localStorage.removeItem('output_options');
+    localStorage.removeItem('onboarding_complete');
+    localStorage.removeItem('seen_version');
     console.log('[App] Reset complete: all local data cleared');
+
   };
 
   const handleCategoriesChange = (newCategories) => {
