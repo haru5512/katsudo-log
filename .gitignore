@@ -21,3 +21,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Temporary work files
+app_base.txt
+app_ours.txt
+app_theirs.txt
+*_diff.txt
+*_diff_utf8.txt
+diff.txt
+diff_2.txt
+dist/

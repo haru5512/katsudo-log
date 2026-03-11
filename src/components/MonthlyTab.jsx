@@ -12,6 +12,13 @@ function MonthlyTab({ records, categories }) {
             return saved ? JSON.parse(saved) : { place: true, note: true, count: true };
         } catch { return { place: true, note: true, count: true }; }
     });
+    const [showDiscordOptions, setShowDiscordOptions] = useState(false);
+    const [discordOptions, setDiscordOptions] = useState(() => {
+        try {
+            const saved = localStorage.getItem('discord_output_options');
+            return saved ? JSON.parse(saved) : { note: true };
+        } catch { return { note: true }; }
+    });
 
     const categoryIcons = buildCategoryIcons(categories);
 
@@ -19,6 +26,12 @@ function MonthlyTab({ records, categories }) {
         const updated = { ...outputOptions, [key]: !outputOptions[key] };
         setOutputOptions(updated);
         localStorage.setItem('output_options', JSON.stringify(updated));
+    };
+
+    const toggleDiscordOption = (key) => {
+        const updated = { ...discordOptions, [key]: !discordOptions[key] };
+        setDiscordOptions(updated);
+        localStorage.setItem('discord_output_options', JSON.stringify(updated));
     };
 
     const changeMonth = (dir) => {
@@ -76,11 +89,13 @@ function MonthlyTab({ records, categories }) {
             }
             exportLines.push(content);
 
-            // Discordフォーマット（メモ・人数は含めない）
+            // Discordフォーマット（discordOptionsで制御）
             discordLines.push(`**${dateHeader}**`);
             if (dayRecs.length > 0) {
                 dayRecs.forEach(r => {
-                    discordLines.push(`> ・${r.content}`);
+                    let line = `> ・${r.content}`;
+                    if (discordOptions.note && r.note) line += ` ※${r.note}`;
+                    discordLines.push(line);
                 });
             }
             discordLines.push('');
@@ -90,7 +105,7 @@ function MonthlyTab({ records, categories }) {
         const discord = discordLines.join('\n');
 
         return { monthRecs: allMonthRecs, stats: { days, people, categoryCounts }, exportText: text, discordText: discord };
-    }, [records, currentMonth, outputOptions, categories]);
+    }, [records, currentMonth, outputOptions, discordOptions, categories]);
 
 
     const copyToClipboard = (text, label) => {
@@ -222,7 +237,7 @@ function MonthlyTab({ records, categories }) {
                 <div className="card-title">
                     <span>出力</span>
                     <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', alignItems: 'center' }}>
-                        {/* 表示項目ボタン（報告書モードのみ） */}
+                        {/* 表示項目ボタン（報告書モード） */}
                         {previewMode === 'report' && (() => {
                             const checkedCount = Object.values(outputOptions).filter(Boolean).length;
                             const totalCount = Object.keys(outputOptions).length;
@@ -257,6 +272,41 @@ function MonthlyTab({ records, categories }) {
                                 </button>
                             );
                         })()}
+                        {/* 表示項目ボタン（Discordモード） */}
+                        {previewMode === 'discord' && (() => {
+                            const checkedCount = Object.values(discordOptions).filter(Boolean).length;
+                            const totalCount = Object.keys(discordOptions).length;
+                            const allChecked = checkedCount === totalCount;
+                            return (
+                                <button
+                                    onClick={() => setShowDiscordOptions(v => !v)}
+                                    style={{
+                                        padding: '4px 8px', fontSize: '11px', borderRadius: '4px',
+                                        border: `1px solid ${showDiscordOptions ? '#5865F2' : '#aaa'}`,
+                                        background: showDiscordOptions ? '#eef0ff' : 'white',
+                                        color: showDiscordOptions ? '#5865F2' : '#555',
+                                        cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: '5px'
+                                    }}
+                                >
+                                    ⚙️ 表示項目
+                                    <span style={{
+                                        display: 'inline-block',
+                                        minWidth: '18px',
+                                        padding: '0 4px',
+                                        borderRadius: '10px',
+                                        background: allChecked ? '#5865F2' : '#f0a500',
+                                        color: 'white',
+                                        fontSize: '10px',
+                                        fontWeight: 'bold',
+                                        textAlign: 'center',
+                                        lineHeight: '18px',
+                                    }}>
+                                        {checkedCount}/{totalCount}
+                                    </span>
+                                </button>
+                            );
+                        })()}
                         <button
                             onClick={() => setPreviewMode('report')}
                             style={{
@@ -278,7 +328,7 @@ function MonthlyTab({ records, categories }) {
                     </div>
                 </div>
 
-                {/* 表示項目パネル（報告書モードのみ） */}
+                {/* 表示項目パネル（報告書モード） */}
                 {showOutputOptions && previewMode === 'report' && (
                     <div style={{
                         display: 'flex', gap: '8px', flexWrap: 'wrap',
@@ -313,7 +363,42 @@ function MonthlyTab({ records, categories }) {
                                 </button>
                             );
                         })}
-                        <div style={{ fontSize: '10px', color: '#aaa', width: '100%', marginTop: '4px' }}>※ Discord出力ではメモ・人数は含まれません</div>
+                    </div>
+                )}
+
+                {/* 表示項目パネル（Discordモード） */}
+                {showDiscordOptions && previewMode === 'discord' && (
+                    <div style={{
+                        display: 'flex', gap: '8px', flexWrap: 'wrap',
+                        padding: '10px 12px', background: '#f0f1ff',
+                        borderRadius: '8px', marginBottom: '10px', fontSize: '13px'
+                    }}>
+                        {[
+                            { key: 'note', label: '📝 メモ' },
+                        ].map(({ key, label }) => {
+                            const isOn = discordOptions[key];
+                            return (
+                                <button
+                                    key={key}
+                                    onClick={() => toggleDiscordOption(key)}
+                                    style={{
+                                        padding: '5px 12px',
+                                        borderRadius: '20px',
+                                        fontSize: '12px',
+                                        cursor: 'pointer',
+                                        border: isOn ? '1.5px solid #5865F2' : '1.5px solid #ccc',
+                                        background: isOn ? '#5865F2' : '#f0f0f0',
+                                        color: isOn ? 'white' : '#888',
+                                        fontWeight: isOn ? 'bold' : 'normal',
+                                        display: 'flex', alignItems: 'center', gap: '4px',
+                                        transition: 'all 0.15s',
+                                        userSelect: 'none',
+                                    }}
+                                >
+                                    {isOn ? '✓' : '　'}{label}
+                                </button>
+                            );
+                        })}
                     </div>
                 )}
 
