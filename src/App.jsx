@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { WEEKDAYS, loadCategories, saveCategories, loadTheme, saveTheme, applyTheme, DEFAULT_CATEGORIES } from './utils';
+import { WEEKDAYS, loadCategories, saveCategories, loadTheme, saveTheme, applyTheme, DEFAULT_CATEGORIES, APP_VERSION, CHANGELOG } from './utils';
 import RecordTab from './components/RecordTab';
 import ListTab from './components/ListTab';
 import MonthlyTab from './components/MonthlyTab';
@@ -24,6 +24,8 @@ function App() {
   const [appTitle, setAppTitle] = useState(
     () => localStorage.getItem('app_title') || '📓 LogNote'
   );
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
+  const [whatsNewLog, setWhatsNewLog] = useState([]);
 
   useEffect(() => {
     console.log('App Version: 2.0.0 (Customizable Categories)'); // Debug for deployment
@@ -41,6 +43,17 @@ function App() {
         alert('✅ 設定を完了しました！');
         // Clean URL
         window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+    // Check for new version
+    const seenVersion = localStorage.getItem('seen_version');
+    if (seenVersion !== APP_VERSION) {
+      // Show only entries newer than what was last seen
+      const seenIdx = CHANGELOG.findIndex(c => c.version === seenVersion);
+      const newEntries = seenIdx === -1 ? CHANGELOG : CHANGELOG.slice(0, seenIdx);
+      if (newEntries.length > 0) {
+        setWhatsNewLog(newEntries);
+        setShowWhatsNew(true);
       }
     }
   }, []);
@@ -293,6 +306,59 @@ function App() {
           localStorage.setItem('app_title', title);
         }}
       />
+
+      {/* What's New Modal */}
+      {showWhatsNew && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '16px'
+        }}>
+          <div style={{
+            background: 'var(--cream)', borderRadius: '16px', padding: '24px',
+            maxWidth: '420px', width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            maxHeight: '80vh', overflowY: 'auto'
+          }}>
+            <div style={{ fontSize: '22px', fontWeight: 'bold', color: 'var(--forest)', marginBottom: '4px' }}>
+              🆕 アップデート情報
+            </div>
+            <div style={{ fontSize: '11px', color: '#999', marginBottom: '16px' }}>v{APP_VERSION}</div>
+            {whatsNewLog.map(entry => (
+              <div key={entry.version} style={{ marginBottom: '16px' }}>
+                <div style={{
+                  fontSize: '13px', fontWeight: 'bold',
+                  color: 'var(--moss)', marginBottom: '6px',
+                  borderBottom: '1px solid var(--mist)', paddingBottom: '4px'
+                }}>
+                  v{entry.version} <span style={{ fontWeight: 'normal', color: '#aaa', fontSize: '11px' }}>({entry.date})</span>
+                </div>
+                <ul style={{ margin: 0, paddingLeft: '16px', listStyle: 'none' }}>
+                  {entry.items.map((item, i) => (
+                    <li key={i} style={{ fontSize: '13px', color: 'var(--ink)', marginBottom: '6px', lineHeight: '1.5' }}>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+            <button
+              onClick={() => {
+                localStorage.setItem('seen_version', APP_VERSION);
+                setShowWhatsNew(false);
+              }}
+              style={{
+                width: '100%', padding: '12px',
+                background: 'var(--forest)', color: 'white',
+                border: 'none', borderRadius: '10px',
+                fontSize: '14px', fontWeight: 'bold', cursor: 'pointer',
+                marginTop: '8px'
+              }}
+            >
+              確認しました
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
