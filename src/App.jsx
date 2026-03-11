@@ -4,6 +4,7 @@ import RecordTab from './components/RecordTab';
 import ListTab from './components/ListTab';
 import MonthlyTab from './components/MonthlyTab';
 import SettingsModal from './components/SettingsModal';
+import OnboardingModal from './components/OnboardingModal';
 
 function App() {
   const [activeTab, setActiveTab] = useState('record');
@@ -26,6 +27,9 @@ function App() {
   );
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [whatsNewLog, setWhatsNewLog] = useState([]);
+  const [showOnboarding, setShowOnboarding] = useState(
+    () => !localStorage.getItem('onboarding_complete')
+  );
 
   useEffect(() => {
     console.log('App Version: 2.0.0 (Customizable Categories)'); // Debug for deployment
@@ -45,15 +49,16 @@ function App() {
         window.history.replaceState({}, '', window.location.pathname);
       }
     }
-    // Check for new version
-    const seenVersion = localStorage.getItem('seen_version');
-    if (seenVersion !== APP_VERSION) {
-      // Show only entries newer than what was last seen
-      const seenIdx = CHANGELOG.findIndex(c => c.version === seenVersion);
-      const newEntries = seenIdx === -1 ? CHANGELOG : CHANGELOG.slice(0, seenIdx);
-      if (newEntries.length > 0) {
-        setWhatsNewLog(newEntries);
-        setShowWhatsNew(true);
+    // Check for new version (skip if onboarding not yet done)
+    if (localStorage.getItem('onboarding_complete')) {
+      const seenVersion = localStorage.getItem('seen_version');
+      if (seenVersion !== APP_VERSION) {
+        const seenIdx = CHANGELOG.findIndex(c => c.version === seenVersion);
+        const newEntries = seenIdx === -1 ? CHANGELOG : CHANGELOG.slice(0, seenIdx);
+        if (newEntries.length > 0) {
+          setWhatsNewLog(newEntries);
+          setShowWhatsNew(true);
+        }
       }
     }
   }, []);
@@ -306,6 +311,21 @@ function App() {
           localStorage.setItem('app_title', title);
         }}
       />
+
+      {/* Onboarding (first time only) */}
+      {showOnboarding && (
+        <OnboardingModal
+          onComplete={() => {
+            localStorage.setItem('onboarding_complete', '1');
+            localStorage.setItem('seen_version', APP_VERSION);
+            setShowOnboarding(false);
+          }}
+          onCategoriesChange={handleCategoriesChange}
+          onThemeChange={handleThemeChange}
+          onSaveUrl={(url) => setGasUrl(url)}
+          currentTheme={currentTheme}
+        />
+      )}
 
       {/* What's New Modal */}
       {showWhatsNew && (
