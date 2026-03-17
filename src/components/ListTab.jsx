@@ -94,22 +94,32 @@ function ListTab({ records, onUpdate, onDelete, onBulkDelete, categories }) {
         setFilterCat('');
         setFilterMonth(currentMonthLink);
 
+        const todayStr = current.getFullYear() + '-' + String(current.getMonth() + 1).padStart(2, '0') + '-' + String(current.getDate()).padStart(2, '0');
+
+        const highlightTarget = (el) => {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.style.transition = 'background 0.5s';
+            el.style.background = '#fff3cd';
+            setTimeout(() => { el.style.background = ''; }, 1500);
+        };
+
         // Use timeout to allow render to complete after state change
         setTimeout(() => {
-            const todayStr = current.getFullYear() + '-' + String(current.getMonth() + 1).padStart(2, '0') + '-' + String(current.getDate()).padStart(2, '0');
-            // Try to find exact date match
             const target = document.querySelector(`.log-item[data-date="${todayStr}"]`);
 
             if (target) {
-                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                // Highlight momentarily
-                target.style.transition = 'background 0.5s';
-                target.style.background = '#fff3cd';
-                setTimeout(() => {
-                    target.style.background = '';
-                }, 1500);
+                highlightTarget(target);
             } else {
-                alert('本日の記録は見つかりませんでした');
+                // Today's record may be beyond the visible 30 items — expand all
+                setVisibleCount(records.length);
+                setTimeout(() => {
+                    const retryTarget = document.querySelector(`.log-item[data-date="${todayStr}"]`);
+                    if (retryTarget) {
+                        highlightTarget(retryTarget);
+                    } else {
+                        alert('本日の記録は見つかりませんでした');
+                    }
+                }, 100);
             }
         }, 100);
     };
