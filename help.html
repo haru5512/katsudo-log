@@ -179,7 +179,7 @@
             <li>フロッピーディスクのアイコン💾（保存）を押して保存します。</li>
         </ol>
 
-        <button class="copy-btn" onclick="copyCode()">📋 コードをコピーする</button>
+        <button id="copy-btn" class="copy-btn" onclick="copyCode()">📋 コードをコピーする</button>
 
         <details id="code-details" open>
             <summary>ソースコードを表示（上級者向け）</summary>
@@ -455,7 +455,7 @@ function formatTime(time) {
 }</pre>
         </details>
 
-        <h2>手順 3：初期設定の実行</h2>
+        <h2 id="step3">手順 3：初期設定の実行</h2>
         <p>※ スプレッドシートの準備をするため、<strong>初めての時だけ必ず実行してください。</strong></p>
         <ol>
             <li>ツールバーのプルダウン（「デバッグ」の横）から <strong>「setup」</strong> を選びます。</li>
@@ -512,6 +512,43 @@ function formatTime(time) {
     </div>
 
     <script>
+        function onCopySuccess() {
+            const btn = document.getElementById('copy-btn');
+            const details = document.getElementById('code-details');
+
+            // ① ボタンをフィードバック表示に切り替え
+            btn.textContent = '✅ コピー完了！エディタに貼り付けてください';
+            btn.style.background = '#388e3c';
+            btn.disabled = true;
+
+            // ② 1.5秒後：<details> を折りたたむ
+            setTimeout(() => {
+                details.open = false;
+            }, 1500);
+
+            // ③ 1.8秒後：手順3へスムーズスクロール
+            setTimeout(() => {
+                document.getElementById('step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 1800);
+
+            // ④ 3.5秒後：ボタンを元の状態に戻す
+            setTimeout(() => {
+                btn.textContent = '📋 コードをコピーする';
+                btn.style.background = '';
+                btn.disabled = false;
+            }, 3500);
+        }
+
+        function onCopyError() {
+            const btn = document.getElementById('copy-btn');
+            btn.textContent = '❌ コピー失敗 - 手動でコードを選択してください';
+            btn.style.background = '#c62828';
+            setTimeout(() => {
+                btn.textContent = '📋 コードをコピーする';
+                btn.style.background = '';
+            }, 4000);
+        }
+
         function copyCode() {
             // Ensure details is open so textContent is accessible
             const details = document.getElementById('code-details');
@@ -520,14 +557,14 @@ function formatTime(time) {
             const code = document.getElementById('gas-code').textContent.trim();
 
             if (!code) {
-                alert('コードの取得に失敗しました。ページをリロードしてお試しください。');
+                onCopyError();
                 return;
             }
 
             // Try modern Clipboard API first (requires HTTPS or localhost)
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(code).then(() => {
-                    alert('コードをコピーしました！Apps Scriptのエディタに貼り付けてください。');
+                    onCopySuccess();
                 }).catch(() => {
                     fallbackCopy(code);
                 });
@@ -557,9 +594,9 @@ function formatTime(time) {
             }
             document.body.removeChild(textarea);
             if (success) {
-                alert('コードをコピーしました！Apps Scriptのエディタに貼り付けてください。');
+                onCopySuccess();
             } else {
-                alert('コピーに失敗しました。ソースコードを手動で選択してコピーしてください。');
+                onCopyError();
             }
         }
     </script>
