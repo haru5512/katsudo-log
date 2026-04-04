@@ -181,7 +181,7 @@
 
         <button class="copy-btn" onclick="copyCode()">📋 コードをコピーする</button>
 
-        <details>
+        <details id="code-details" open>
             <summary>ソースコードを表示（上級者向け）</summary>
             <pre id="gas-code">// Google Apps Script Code
 // 1. Copy this code into your Google Sheet's Script Editor (Extensions > Apps Script)
@@ -294,7 +294,8 @@ function importFromCalendar(startStr, endStr) {
             e.getTitle(),
             e.getLocation(),
             '', // count
-            e.getDescription()
+            e.getDescription(),
+            false // excludeFromReport
         ]);
     });
 
@@ -512,10 +513,54 @@ function formatTime(time) {
 
     <script>
         function copyCode() {
-            const code = document.getElementById('gas-code').innerText;
-            navigator.clipboard.writeText(code).then(() => {
+            // Ensure details is open so textContent is accessible
+            const details = document.getElementById('code-details');
+            if (details) details.open = true;
+
+            const code = document.getElementById('gas-code').textContent.trim();
+
+            if (!code) {
+                alert('コードの取得に失敗しました。ページをリロードしてお試しください。');
+                return;
+            }
+
+            // Try modern Clipboard API first (requires HTTPS or localhost)
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(code).then(() => {
+                    alert('コードをコピーしました！Apps Scriptのエディタに貼り付けてください。');
+                }).catch(() => {
+                    fallbackCopy(code);
+                });
+            } else {
+                fallbackCopy(code);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            // Must be visible for execCommand to work
+            textarea.style.position = 'absolute';
+            textarea.style.top = window.scrollY + 'px';
+            textarea.style.left = '0';
+            textarea.style.opacity = '0';
+            textarea.style.pointerEvents = 'none';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            textarea.setSelectionRange(0, textarea.value.length);
+            let success = false;
+            try {
+                success = document.execCommand('copy');
+            } catch (e) {
+                // ignore
+            }
+            document.body.removeChild(textarea);
+            if (success) {
                 alert('コードをコピーしました！Apps Scriptのエディタに貼り付けてください。');
-            });
+            } else {
+                alert('コピーに失敗しました。ソースコードを手動で選択してコピーしてください。');
+            }
         }
     </script>
 
