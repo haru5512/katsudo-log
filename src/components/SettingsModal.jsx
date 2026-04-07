@@ -400,6 +400,23 @@ function SettingsModal({ isOpen, onClose, onSaveUrl, onImportCompleted, onReset,
                         🗑️ アプリの初期化（連携解除＆全削除）
                     </button>
                 </div>
+
+                {/* ── LogNote LP Link ── */}
+                <div style={{
+                    marginTop: '30px',
+                    borderTop: '2px solid #eee',
+                    paddingTop: '20px',
+                    textAlign: 'center'
+                }}>
+                    <a
+                        href="https://haru5512.github.io/katsudo-log/lp/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: 'var(--forest)', fontSize: '13px', textDecoration: 'underline' }}
+                    >
+                        🌐 LogNoteをもっと詳しく知る（紹介ページ）
+                    </a>
+                </div>
             </div>
         </div>
     );
