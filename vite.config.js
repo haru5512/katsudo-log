@@ -22,6 +22,9 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512-real.png', 'icon-512.png', 'icon.svg'],
+      workbox: {
+        navigateFallbackDenylist: [/^\/katsudo-log\/lp\//, /\/help\.html$/],
+      },
       manifest: {
         name: 'LogNote',
         short_name: 'LogNote',
