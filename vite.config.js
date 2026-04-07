@@ -1,11 +1,24 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import fs from 'node:fs'
+import path from 'node:path'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
+    {
+      name: 'copy-lp-folder',
+      closeBundle() {
+        const src = path.resolve(process.cwd(), 'lp');
+        const dest = path.resolve(process.cwd(), 'dist', 'lp');
+        if (fs.existsSync(src)) {
+          fs.cpSync(src, dest, { recursive: true });
+          console.log('✓ Copied lp/ to dist/lp/');
+        }
+      }
+    },
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512-real.png', 'icon-512.png', 'icon.svg'],
