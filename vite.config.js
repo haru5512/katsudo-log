@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon-512.png', 'icon.svg'],
+      includeAssets: ['icon-192.png', 'icon-512-real.png', 'icon-512.png', 'icon.svg'],
       manifest: {
         name: 'LogNote',
         short_name: 'LogNote',
@@ -16,23 +16,25 @@ export default defineConfig(({ mode }) => ({
         theme_color: '#2E5C55',
         background_color: '#FDFBF7',
         display: 'standalone',
-        start_url: './index.html',
+        start_url: '.',
         icons: [
           {
-            src: 'icon-512.png',
+            src: 'icon-192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
-            src: 'icon-512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          },
-          {
-            src: 'icon-512.png',
+            src: 'icon-512-real.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            src: 'icon-512-real.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       }

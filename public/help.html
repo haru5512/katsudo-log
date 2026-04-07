@@ -155,6 +155,22 @@
                 padding: 20px 16px;
             }
         }
+        .step-img {
+            display: block;
+            width: 100%;
+            max-width: 680px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            margin: 10px 0 6px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .img-caption {
+            font-size: 0.82em;
+            color: #777;
+            margin-bottom: 12px;
+            display: block;
+        }
     </style>
 </head>
 
@@ -179,9 +195,9 @@
             <li>フロッピーディスクのアイコン💾（保存）を押して保存します。</li>
         </ol>
 
-        <button class="copy-btn" onclick="copyCode()">📋 コードをコピーする</button>
+        <button id="copy-btn" class="copy-btn" onclick="copyCode()">📋 コードをコピーする</button>
 
-        <details>
+        <details id="code-details" open>
             <summary>ソースコードを表示（上級者向け）</summary>
             <pre id="gas-code">// Google Apps Script Code
 // 1. Copy this code into your Google Sheet's Script Editor (Extensions > Apps Script)
@@ -294,7 +310,8 @@ function importFromCalendar(startStr, endStr) {
             e.getTitle(),
             e.getLocation(),
             '', // count
-            e.getDescription()
+            e.getDescription(),
+            false // excludeFromReport
         ]);
     });
 
@@ -454,11 +471,19 @@ function formatTime(time) {
 }</pre>
         </details>
 
-        <h2>手順 3：初期設定の実行</h2>
+        <h2 id="step3">手順 3：初期設定の実行</h2>
         <p>※ スプレッドシートの準備をするため、<strong>初めての時だけ必ず実行してください。</strong></p>
         <ol>
-            <li>ツールバーのプルダウン（「デバッグ」の横）から <strong>「setup」</strong> を選びます。</li>
-            <li><strong>実行ボタン ▶</strong> を押します。</li>
+            <li>
+                ツールバーのプルダウン（「デバッグ」の横）から <strong>「setup」</strong> を選びます。
+                <img src="images/step3-select-setup.png" alt="setupを選択するスクリーンショット" class="step-img">
+                <span class="img-caption">↑ ドロップダウンから「setup」を選んでください</span>
+            </li>
+            <li>
+                <strong>実行ボタン ▶</strong> を押します。
+                <img src="images/step3-click-run.png" alt="実行ボタンを押すスクリーンショット" class="step-img">
+                <span class="img-caption">↑ 「実行 ▶」ボタンを押してください</span>
+            </li>
             <li>「承認が必要です」と出たら、許可を与えてください。
                 <div class="note">
                     <strong>許可の手順：</strong>
@@ -487,6 +512,8 @@ function formatTime(time) {
                     <li><strong>次のユーザーとして実行</strong>：<strong>「自分 (Me)」</strong></li>
                     <li><strong>アクセスできるユーザー</strong>：<strong>「全員 (Anyone)」</strong></li>
                 </ul>
+                <img src="images/step4-deploy-settings.png" alt="デプロイ設定画面のスクリーンショット" class="step-img">
+                <span class="img-caption">↑ この画面のように設定してください（「自分」「全員」を選択）</span>
             </li>
             <li><strong>「デプロイ」</strong> をクリック。</li>
             <li>表示された <strong>「ウェブアプリのURL」</strong> をコピーしてください。</li>
@@ -511,11 +538,92 @@ function formatTime(time) {
     </div>
 
     <script>
+        function onCopySuccess() {
+            const btn = document.getElementById('copy-btn');
+            const details = document.getElementById('code-details');
+
+            // ① ボタンをフィードバック表示に切り替え
+            btn.textContent = '✅ コピー完了！エディタに貼り付けてください';
+            btn.style.background = '#388e3c';
+            btn.disabled = true;
+
+            // ② 1.5秒後：<details> を折りたたむ
+            setTimeout(() => {
+                details.open = false;
+            }, 1500);
+
+            // ③ 1.8秒後：手順3へスムーズスクロール
+            setTimeout(() => {
+                document.getElementById('step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 1800);
+
+            // ④ 3.5秒後：ボタンを元の状態に戻す
+            setTimeout(() => {
+                btn.textContent = '📋 コードをコピーする';
+                btn.style.background = '';
+                btn.disabled = false;
+            }, 3500);
+        }
+
+        function onCopyError() {
+            const btn = document.getElementById('copy-btn');
+            btn.textContent = '❌ コピー失敗 - 手動でコードを選択してください';
+            btn.style.background = '#c62828';
+            setTimeout(() => {
+                btn.textContent = '📋 コードをコピーする';
+                btn.style.background = '';
+            }, 4000);
+        }
+
         function copyCode() {
-            const code = document.getElementById('gas-code').innerText;
-            navigator.clipboard.writeText(code).then(() => {
-                alert('コードをコピーしました！Apps Scriptのエディタに貼り付けてください。');
-            });
+            // Ensure details is open so textContent is accessible
+            const details = document.getElementById('code-details');
+            if (details) details.open = true;
+
+            const code = document.getElementById('gas-code').textContent.trim();
+
+            if (!code) {
+                onCopyError();
+                return;
+            }
+
+            // Try modern Clipboard API first (requires HTTPS or localhost)
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(code).then(() => {
+                    onCopySuccess();
+                }).catch(() => {
+                    fallbackCopy(code);
+                });
+            } else {
+                fallbackCopy(code);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            // Must be visible for execCommand to work
+            textarea.style.position = 'absolute';
+            textarea.style.top = window.scrollY + 'px';
+            textarea.style.left = '0';
+            textarea.style.opacity = '0';
+            textarea.style.pointerEvents = 'none';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            textarea.setSelectionRange(0, textarea.value.length);
+            let success = false;
+            try {
+                success = document.execCommand('copy');
+            } catch (e) {
+                // ignore
+            }
+            document.body.removeChild(textarea);
+            if (success) {
+                onCopySuccess();
+            } else {
+                onCopyError();
+            }
         }
     </script>
 

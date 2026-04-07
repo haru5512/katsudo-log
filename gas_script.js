@@ -109,7 +109,8 @@ function importFromCalendar(startStr, endStr) {
             e.getTitle(),
             e.getLocation(),
             '', // count
-            e.getDescription()
+            e.getDescription(),
+            false // excludeFromReport
         ]);
     });
 
