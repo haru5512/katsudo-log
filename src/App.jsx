@@ -27,9 +27,11 @@ function App() {
   );
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [whatsNewLog, setWhatsNewLog] = useState([]);
-  const [showOnboarding, setShowOnboarding] = useState(
-    () => !localStorage.getItem('onboarding_complete')
-  );
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('demo') === '1') return true;
+    return !localStorage.getItem('onboarding_complete');
+  });
 
   useEffect(() => {
     console.log('App Version: 2.0.0 (Customizable Categories)'); // Debug for deployment
