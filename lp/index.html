@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LogNote - 活動記録アプリ</title>
+  <meta name="description" content="地域おこし協力隊の日々の活動記録・報告書作成をもっとシンプルに。スマホひとつで記録、集計、出力まで完結するPWAアプリ「LogNote」。" />
+
+  <!-- OGP -->
+  <meta property="og:title" content="LogNote - 活動記録アプリ" />
+  <meta property="og:description" content="地域おこし協力隊の日々の活動記録・報告書作成をもっとシンプルに。スマホひとつで記録、集計、出力まで完結するPWAアプリ。" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://haru5512.github.io/katsudo-log/index.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="LogNote - 活動記録アプリ" />
+  <meta name="twitter:description" content="地域おこし協力隊の活動記録・報告書作成をシンプルに。スマホひとつで完結するPWA。" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ===== CSS Variables ===== */
+    :root {
+      --forest: #2E5C55;
+      --forest-dark: #1e3d38;
+      --forest-light: #3d7a71;
+      --moss: #4a8c82;
+      --mist: #d4e8e4;
+      --cream: #FDFBF7;
+      --cream-dark: #f0ece4;
+      --ink: #1a2e2b;
+      --ink-light: #4a5568;
+      --ink-muted: #718096;
+      --white: #ffffff;
+      --accent: #e8a045;
+      --shadow-sm: 0 2px 8px rgba(46,92,85,0.08);
+      --shadow-md: 0 8px 24px rgba(46,92,85,0.12);
+      --shadow-lg: 0 16px 48px rgba(46,92,85,0.18);
+      --radius-sm: 8px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-xl: 32px;
+    }
+
+    /* ===== Reset & Base ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background-color: var(--cream);
+      color: var(--ink);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    img { max-width: 100%; display: block; }
+
+    a { text-decoration: none; color: inherit; }
+
+    /* ===== Layout ===== */
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    section {
+      padding: 80px 0;
+    }
+
+    /* ===== Navigation ===== */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(253, 251, 247, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(46,92,85,0.08);
+      transition: box-shadow 0.3s;
+    }
+
+    .nav.scrolled {
+      box-shadow: var(--shadow-sm);
+    }
+
+    .nav-logo {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--forest);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--forest);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .nav-cta {
+      background: var(--forest);
+      color: var(--white);
+      padding: 10px 20px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .nav-cta:hover {
+      background: var(--forest-dark);
+      transform: translateY(-1px);
+    }
+
+    /* ===== Hero ===== */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 120px 0 80px;
+      background: linear-gradient(160deg, var(--cream) 0%, #eef4f2 50%, var(--cream) 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      right: -200px;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(46,92,85,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -100px;
+      left: -100px;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(46,92,85,0.04) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(46,92,85,0.1);
+      color: var(--forest);
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      border: 1px solid rgba(46,92,85,0.15);
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--forest);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.3); }
+    }
+
+    .hero-title {
+      font-size: clamp(36px, 5vw, 56px);
+      font-weight: 900;
+      line-height: 1.2;
+      color: var(--ink);
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+
+    .hero-title .accent {
+      color: var(--forest);
+      position: relative;
+    }
+
+    .hero-subtitle {
+      font-size: 16px;
+      color: var(--ink-light);
+      line-height: 1.8;
+      margin-bottom: 36px;
+      max-width: 480px;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--forest);
+      color: var(--white);
+      padding: 16px 28px;
+      border-radius: 100px;
+      font-size: 15px;
+      font-weight: 700;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 4px 16px rgba(46,92,85,0.3);
+    }
+
+    .btn-primary:hover {
+      background: var(--forest-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(46,92,85,0.4);
+    }
+
+    .btn-primary .arrow {
+      transition: transform 0.2s;
+    }
+
+    .btn-primary:hover .arrow {
+      transform: translateX(4px);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      color: var(--forest);
+      padding: 16px 28px;
+      border-radius: 100px;
+      font-size: 15px;
+      font-weight: 600;
+      border: 2px solid var(--mist);
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--forest);
+      background: rgba(46,92,85,0.04);
+    }
+
+    /* ===== App Mockup (real screenshot) ===== */
+    .mockup-wrapper {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .mockup-glow {
+      position: absolute;
+      inset: -20px;
+      background: radial-gradient(ellipse at center, rgba(46,92,85,0.15) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .browser-frame {
+      width: 100%;
+      max-width: 600px;
+      background: rgba(255, 255, 255, 0.4);
+      border: 1px solid rgba(46, 92, 85, 0.15);
+      border-radius: 12px;
+      padding: 0;
+      position: relative;
+      box-shadow:
+        0 12px 40px rgba(0,0,0,0.1),
+        0 0 0 1px rgba(255,255,255,0.5) inset;
+      animation: float 4s ease-in-out infinite;
+      backdrop-filter: blur(10px);
+      transform-origin: center center;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(-1deg); }
+      50% { transform: translateY(-8px) rotate(-1deg); }
+    }
+
+    .browser-header {
+      height: 28px;
+      background: rgba(255,255,255,0.7);
+      border-radius: 12px 12px 0 0;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 6px;
+    }
+
+    .browser-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .browser-dot:nth-child(1) { background: #ff5f56; }
+    .browser-dot:nth-child(2) { background: #ffbd2e; }
+    .browser-dot:nth-child(3) { background: #27c93f; }
+
+    .browser-screen {
+      border-radius: 0 0 12px 12px;
+      overflow: hidden;
+      line-height: 0;
+    }
+
+    .browser-screen img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* ===== Screenshot Tabs ===== */
+    .screenshot-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .screenshot-tab {
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1.5px solid var(--mist);
+      background: white;
+      color: var(--ink-muted);
+      transition: all 0.2s;
+    }
+
+    .screenshot-tab.active {
+      background: var(--forest);
+      color: white;
+      border-color: var(--forest);
+    }
+
+    /* ===== Screenshots Section ===== */
+    .screenshots-section {
+      background: linear-gradient(180deg, white 0%, var(--cream) 100%);
+      padding: 80px 0;
+    }
+
+    .screenshots-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 48px;
+    }
+
+    .screenshot-card {
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+      border: 1px solid rgba(0,0,0,0.06);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s;
+      background: white;
+    }
+
+    .screenshot-card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .screenshot-card img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .screenshot-card-label {
+      padding: 14px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--forest);
+      background: white;
+      border-top: 1px solid rgba(0,0,0,0.05);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    @media (max-width: 768px) {
+      .screenshots-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+    }
+
+    /* ===== Section Headings ===== */
+    .section-label {
+      display: inline-block;
+      background: rgba(46,92,85,0.08);
+      color: var(--forest);
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: clamp(26px, 4vw, 40px);
+      font-weight: 900;
+      line-height: 1.25;
+      color: var(--ink);
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .section-desc {
+      font-size: 16px;
+      color: var(--ink-light);
+      line-height: 1.8;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .section-head-center {
+      text-align: center;
+      max-width: 600px;
+      margin: 0 auto 56px;
+    }
+
+    /* ===== Problem Section ===== */
+    .problem {
+      background: linear-gradient(180deg, var(--cream) 0%, #f2efe8 100%);
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .problem-card {
+      background: white;
+      border-radius: var(--radius-md);
+      padding: 24px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(0,0,0,0.04);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .problem-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .problem-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(232,160,69,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .problem-text {
+      font-size: 14px;
+      color: var(--ink-light);
+      line-height: 1.6;
+      font-weight: 500;
+    }
+
+    /* ===== Features Section ===== */
+    .features {
+      background: white;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--cream);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      border: 1px solid rgba(46,92,85,0.08);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--forest);
+      transform: scaleX(0);
+      transition: transform 0.3s;
+      transform-origin: left;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .feature-card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .feature-num {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--forest);
+      opacity: 0.5;
+      margin-bottom: 4px;
+      letter-spacing: 0.1em;
+    }
+
+    .feature-icon-wrap {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(46,92,85,0.1), rgba(46,92,85,0.05));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 16px;
+    }
+
+    .feature-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+
+    .feature-desc {
+      font-size: 14px;
+      color: var(--ink-light);
+      line-height: 1.7;
+    }
+
+    /* ===== Benefits Section ===== */
+    .benefits {
+      background: linear-gradient(135deg, var(--forest) 0%, var(--forest-dark) 100%);
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .benefits::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      right: -100px;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.03);
+      pointer-events: none;
+    }
+
+    .benefits::after {
+      content: '';
+      position: absolute;
+      bottom: -150px;
+      left: -50px;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.02);
+      pointer-events: none;
+    }
+
+    .benefits .section-label {
+      background: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.9);
+    }
+
+    .benefits .section-title {
+      color: white;
+    }
+
+    .benefits .section-desc {
+      color: rgba(255,255,255,0.75);
+    }
+
+    .benefits-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .benefit-col {
+      background: rgba(255,255,255,0.07);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      border: 1px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(8px);
+    }
+
+    .benefit-col-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.6);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .benefit-col-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.15);
+    }
+
+    .benefit-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .benefit-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      font-size: 14px;
+      color: rgba(255,255,255,0.9);
+      line-height: 1.6;
+    }
+
+    .benefit-check {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* ===== Steps Section ===== */
+    .steps {
+      background: var(--cream);
+    }
+
+    .steps-list {
+      display: flex;
+      gap: 0;
+      max-width: 820px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .steps-list::before {
+      content: '';
+      position: absolute;
+      top: 36px;
+      left: 36px;
+      right: 36px;
+      height: 2px;
+      background: var(--mist);
+      z-index: 0;
+    }
+
+    .step-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 0 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-num {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--forest);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 900;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 16px rgba(46,92,85,0.3);
+      position: relative;
+    }
+
+    .step-num::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 2px solid rgba(46,92,85,0.2);
+    }
+
+    .step-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+
+    .step-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--forest);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .step-desc {
+      font-size: 13px;
+      color: var(--ink-muted);
+      line-height: 1.7;
+    }
+
+    /* ===== CTA Section ===== */
+    .cta {
+      background: linear-gradient(160deg, #eef4f2 0%, var(--cream) 100%);
+      text-align: center;
+    }
+
+    .cta-inner {
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    .cta-emoji {
+      font-size: 48px;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .cta-title {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 900;
+      color: var(--ink);
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .cta-desc {
+      font-size: 15px;
+      color: var(--ink-light);
+      line-height: 1.8;
+      margin-bottom: 36px;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .cta-note {
+      margin-top: 20px;
+      font-size: 12px;
+      color: var(--ink-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .cta-note span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ===== Footer ===== */
+    .footer {
+      background: var(--ink);
+      color: rgba(255,255,255,0.5);
+      padding: 32px 0;
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .footer-logo {
+      font-size: 18px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 8px;
+    }
+
+    /* ===== Scroll Animation ===== */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .fade-in-delay-1 { transition-delay: 0.1s; }
+    .fade-in-delay-2 { transition-delay: 0.2s; }
+    .fade-in-delay-3 { transition-delay: 0.3s; }
+    .fade-in-delay-4 { transition-delay: 0.4s; }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 768px) {
+      section {
+        padding: 60px 0;
+      }
+
+      .hero {
+        padding: 100px 0 60px;
+      }
+
+      .hero-inner {
+        grid-template-columns: 1fr;
+        gap: 48px;
+        text-align: center;
+      }
+
+      .hero-badge {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .hero-subtitle {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .hero-buttons {
+        justify-content: center;
+      }
+
+      .mockup-wrapper {
+        order: -1;
+      }
+
+      .browser-frame {
+        width: 100%;
+        max-width: 480px;
+        margin: 0 auto;
+      }
+
+      .problem-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .benefits-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .steps-list {
+        flex-direction: column;
+        gap: 32px;
+      }
+
+      .steps-list::before {
+        display: none;
+      }
+
+      .step-item {
+        flex-direction: row;
+        text-align: left;
+        gap: 20px;
+      }
+
+      .step-num {
+        width: 56px;
+        height: 56px;
+        font-size: 22px;
+        flex-shrink: 0;
+        margin-bottom: 0;
+      }
+
+      .cta-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 0 16px;
+      }
+
+      .btn-primary,
+      .btn-secondary {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== Navigation ===== -->
+  <nav class="nav" id="main-nav">
+    <div class="nav-logo">
+      <div class="nav-logo-icon">📓</div>
+      LogNote
+    </div>
+    <a href="https://haru5512.github.io/katsudo-log/index.html" class="nav-cta" target="_blank" rel="noopener">
+      今すぐ試してみる
+    </a>
+  </nav>
+
+  <!-- ===== Hero ===== -->
+  <section class="hero" id="hero">
+    <div class="container">
+      <div class="hero-inner">
+        <div class="hero-content fade-in">
+          <div class="hero-badge">PWA対応 · アカウント不要 · オフライン対応</div>
+          <h1 class="hero-title">
+            活動を、<br>
+            <span class="accent">記録から</span><br>
+            成果へ。
+          </h1>
+          <p class="hero-subtitle">
+            地域おこし協力隊の日々の活動記録・報告書作成をもっとシンプルに。スマホひとつで記録、集計、出力まで完結するPWAアプリ「LogNote」。
+          </p>
+          <div class="hero-buttons">
+            <a href="https://haru5512.github.io/katsudo-log/index.html" class="btn-primary" target="_blank" rel="noopener" id="hero-cta-btn">
+              今すぐ試してみる
+              <span class="arrow">→</span>
+            </a>
+            <a href="#features" class="btn-secondary">
+              機能を見る ↓
+            </a>
+          </div>
+        </div>
+
+        <!-- App Mockup with real screenshot -->
+        <div class="mockup-wrapper fade-in fade-in-delay-2">
+          <div class="mockup-glow"></div>
+          <div>
+            <div class="browser-frame">
+              <div class="browser-header">
+                <div class="browser-dot"></div>
+                <div class="browser-dot"></div>
+                <div class="browser-dot"></div>
+              </div>
+              <div class="browser-screen">
+                <img src="images/sc_list.png" alt="LogNote 一覧画面" id="hero-screenshot" />
+              </div>
+            </div>
+            <div class="screenshot-tabs">
+              <button class="screenshot-tab active" onclick="switchScreenshot('sc_list.png', this)">📋 一覧</button>
+              <button class="screenshot-tab" onclick="switchScreenshot('sc_monthly.png', this)">📊 月報</button>
+              <button class="screenshot-tab" onclick="switchScreenshot('sc_output.png', this)">📤 出力</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Problem Section ===== -->
+  <section class="problem" id="problem">
+    <div class="container">
+      <div class="section-head-center fade-in">
+        <span class="section-label">こんな悩み、ありませんか？</span>
+        <h2 class="section-title">協力隊の活動報告、<br>こんな悩みありませんか？</h2>
+      </div>
+      <div class="problem-grid">
+        <div class="problem-card fade-in fade-in-delay-1">
+          <div class="problem-icon">📊</div>
+          <p class="problem-text">毎日の記録をExcelやノートにバラバラに書いている</p>
+        </div>
+        <div class="problem-card fade-in fade-in-delay-2">
+          <div class="problem-icon">😓</div>
+          <p class="problem-text">月末にまとめて報告書を作るのが大変</p>
+        </div>
+        <div class="problem-card fade-in fade-in-delay-3">
+          <div class="problem-icon">🔍</div>
+          <p class="problem-text">活動の振り返りや傾向分析ができていない</p>
+        </div>
+        <div class="problem-card fade-in fade-in-delay-4">
+          <div class="problem-icon">🗂️</div>
+          <p class="problem-text">隊員ごとに報告形式がバラバラで管理側も把握しにくい</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Features Section ===== -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-head-center fade-in">
+        <span class="section-label">主な機能</span>
+        <h2 class="section-title">LogNoteでできること</h2>
+        <p class="section-desc">記録から出力まで、活動報告に必要なすべてがひとつのアプリで完結します。</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card fade-in fade-in-delay-1">
+          <div class="feature-num">FEATURE 01</div>
+          <div class="feature-icon-wrap">✏️</div>
+          <div class="feature-title">記録する</div>
+          <p class="feature-desc">カテゴリ・時間・メモをタップ数回で入力。移動中でもサッと記録できます。スマホに最適化されたUIで、入力のストレスがゼロ。</p>
+        </div>
+        <div class="feature-card fade-in fade-in-delay-2">
+          <div class="feature-num">FEATURE 02</div>
+          <div class="feature-icon-wrap">📋</div>
+          <div class="feature-title">一覧で見る</div>
+          <p class="feature-desc">日別・カテゴリ別にフィルタリング。過去の活動をすぐに振り返れます。検索・絞り込みで必要な記録に即アクセス。</p>
+        </div>
+        <div class="feature-card fade-in fade-in-delay-3">
+          <div class="feature-num">FEATURE 03</div>
+          <div class="feature-icon-wrap">📊</div>
+          <div class="feature-title">月次で集計</div>
+          <p class="feature-desc">カテゴリごとの時間配分や活動回数を自動集計。自分の動きを可視化して、活動のバランスを確認できます。</p>
+        </div>
+        <div class="feature-card fade-in fade-in-delay-4">
+          <div class="feature-num">FEATURE 04</div>
+          <div class="feature-icon-wrap">📤</div>
+          <div class="feature-title">出力する</div>
+          <p class="feature-desc">報告書形式・Discord形式などワンタップでテキスト出力。コピペで提出完了。月末の報告書作成が劇的に楽になります。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Screenshots Section ===== -->
+  <section class="screenshots-section" id="screenshots">
+    <div class="container">
+      <div class="section-head-center fade-in">
+        <span class="section-label">実際の画面</span>
+        <h2 class="section-title">これが実際のLogNoteです</h2>
+        <p class="section-desc">シンプルで使いやすいUIを、スマホからそのまま操作できます。</p>
+      </div>
+      <div class="screenshots-grid">
+        <div class="screenshot-card fade-in fade-in-delay-1">
+          <img src="images/sc_list.png" alt="LogNote 活動一覧画面" loading="lazy" />
+          <div class="screenshot-card-label">📋 一覧 — 日別・カテゴリ別で記録を確認</div>
+        </div>
+        <div class="screenshot-card fade-in fade-in-delay-2">
+          <img src="images/sc_monthly.png" alt="LogNote 月報画面" loading="lazy" />
+          <div class="screenshot-card-label">📊 月報 — 月次の活動ログを自動集計</div>
+        </div>
+        <div class="screenshot-card fade-in fade-in-delay-3">
+          <img src="images/sc_output.png" alt="LogNote 出力画面" loading="lazy" />
+          <div class="screenshot-card-label">📤 出力 — ワンタップで報告書テキストを生成</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Benefits Section ===== -->
+  <section class="benefits" id="benefits">
+    <div class="container">
+      <div class="section-head-center fade-in" style="color: white;">
+        <span class="section-label">導入メリット</span>
+        <h2 class="section-title">管理する側にも、<br>使う側にも。</h2>
+        <p class="section-desc">LogNoteは管理者と隊員、双方の課題を同時に解決します。</p>
+      </div>
+      <div class="benefits-grid">
+        <div class="benefit-col fade-in fade-in-delay-1">
+          <div class="benefit-col-title">🏢 管理者（あるやうむ）にとって</div>
+          <ul class="benefit-list">
+            <li class="benefit-item">
+              <span class="benefit-check">✓</span>
+              16市町村の隊員の活動記録を統一フォーマットで把握できる
+            </li>
+            <li class="benefit-item">
+              <span class="benefit-check">✓</span>
+              月次報告の品質・粒度が揃い、自治体への報告もスムーズに
+            </li>
+            <li class="benefit-item">
+              <span class="benefit-check">✓</span>
+              隊員の活動傾向を定量的に把握でき、サポートの質が上がる
+            </li>
+          </ul>
+        </div>
+        <div class="benefit-col fade-in fade-in-delay-2">
+          <div class="benefit-col-title">🙋 隊員にとって</div>
+          <ul class="benefit-list">
+            <li class="benefit-item">
+              <span class="benefit-check">✓</span>
+              日々の記録が数秒で完了、月末にまとめる苦痛がなくなる
+            </li>
+            <li class="benefit-item">
+              <span class="benefit-check">✓</span>
+              自分の活動を振り返り、次のアクションに活かせる
+            </li>
+            <li class="benefit-item">
+              <span class="benefit-check">✓</span>
+              スマホのホーム画面から即アクセス、アプリのインストール不要
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Steps Section ===== -->
+  <section class="steps" id="steps">
+    <div class="container">
+      <div class="section-head-center fade-in">
+        <span class="section-label">使い方</span>
+        <h2 class="section-title">3ステップで始められる</h2>
+        <p class="section-desc">アカウント登録もアプリインストールも不要。URLを開くだけで今日から使えます。</p>
+      </div>
+      <div class="steps-list">
+        <div class="step-item fade-in fade-in-delay-1">
+          <div class="step-num">1</div>
+          <div>
+            <div class="step-label">アクセス</div>
+            <div class="step-title">開くだけ</div>
+            <p class="step-desc">URLを開いてホーム画面に追加するだけ。アカウント登録不要。インストール不要。</p>
+          </div>
+        </div>
+        <div class="step-item fade-in fade-in-delay-2">
+          <div class="step-num">2</div>
+          <div>
+            <div class="step-label">記録</div>
+            <div class="step-title">10秒で入力</div>
+            <p class="step-desc">カテゴリを選んで、時間とメモを入力。1件あたり10秒。移動中でもサッと記録。</p>
+          </div>
+        </div>
+        <div class="step-item fade-in fade-in-delay-3">
+          <div class="step-num">3</div>
+          <div>
+            <div class="step-label">出力</div>
+            <div class="step-title">ワンタップ完成</div>
+            <p class="step-desc">月末に「出力」ボタンを押すだけ。報告書テキストが自動生成。コピペで提出完了。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CTA Section ===== -->
+  <section class="cta" id="cta">
+    <div class="container">
+      <div class="cta-inner fade-in">
+        <span class="cta-emoji">📓</span>
+        <h2 class="cta-title">さあ、活動記録を<br>もっとシンプルに。</h2>
+        <p class="cta-desc">今すぐ無料で使い始めましょう。アカウント登録なし、インストールなし。URLを開くだけで今日から使えます。</p>
+        <div class="cta-buttons">
+          <a href="https://haru5512.github.io/katsudo-log/index.html" class="btn-primary" target="_blank" rel="noopener" id="cta-main-btn">
+            今すぐ試してみる
+            <span class="arrow">→</span>
+          </a>
+          <a href="#" class="btn-secondary" id="cta-contact-btn">
+            導入のご相談はこちら
+          </a>
+        </div>
+        <div class="cta-note">
+          <span>✅ 完全無料</span>
+          <span>✅ アカウント不要</span>
+          <span>✅ オフライン対応</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Footer ===== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-logo">📓 LogNote</div>
+      <p>地域おこし協力隊の活動記録・報告書作成アプリ</p>
+      <p style="margin-top: 8px;">© 2026 LogNote.</p>
+    </div>
+  </footer>
+
+  <script>
+    // ===== Navigation scroll effect =====
+    const nav = document.getElementById('main-nav');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 40) {
+        nav.classList.add('scrolled');
+      } else {
+        nav.classList.remove('scrolled');
+      }
+    });
+
+    // ===== Screenshot switcher =====
+    function switchScreenshot(filename, btn) {
+      document.getElementById('hero-screenshot').src = 'images/' + filename;
+      document.querySelectorAll('.screenshot-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    // ===== Scroll-based fade-in animation =====
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, {
+      threshold: 0.1,
+      rootMargin: '0px 0px -40px 0px'
+    });
+
+    document.querySelectorAll('.fade-in').forEach(el => {
+      observer.observe(el);
+    });
+
+    // ===== Smooth scroll for anchor links =====
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', (e) => {
+        const target = document.querySelector(anchor.getAttribute('href'));
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
