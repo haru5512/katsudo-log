@@ -90,6 +90,34 @@
     .btn-del { background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 18px; flex-shrink: 0; padding: 2px; line-height: 1; }
     .no-members { text-align: center; color: #aaa; font-size: 13px; padding: 20px; }
 
+    /* Tabs */
+    .tab-bar { display: flex; background: white; border-bottom: 2px solid #eee; }
+    .tab-btn { flex: 1; padding: 10px 4px; font-size: 13px; font-weight: bold; border: none; background: none; color: #aaa; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+    .tab-btn.active { color: var(--forest); border-bottom-color: var(--forest); }
+
+    /* List view */
+    .list-filters { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    .search-input { width: 100%; padding: 9px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; }
+    .search-input:focus { outline: none; border-color: var(--forest); }
+    .filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .filter-select { padding: 6px 10px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 13px; background: white; }
+    .cat-chip { padding: 4px 10px; border-radius: 20px; border: 1.5px solid #ddd; background: white; font-size: 12px; color: #555; cursor: pointer; }
+    .cat-chip.active { background: var(--forest); color: white; border-color: var(--forest); }
+    .result-count { font-size: 12px; color: #888; padding: 4px 0 8px; }
+    .list-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; align-items: flex-start; }
+    .list-date-col { flex-shrink: 0; text-align: center; width: 44px; }
+    .list-date-m { font-size: 10px; color: #aaa; }
+    .list-date-d { font-size: 18px; font-weight: bold; color: var(--forest); line-height: 1.1; }
+    .list-date-wd { font-size: 10px; color: #888; }
+    .list-date-t { font-size: 10px; color: #aaa; margin-top: 2px; }
+    .list-body { flex: 1; }
+    .list-cat { font-size: 11px; color: var(--moss); margin-bottom: 2px; }
+    .list-text { font-size: 14px; font-weight: 500; margin-bottom: 3px; }
+    .list-text.excluded { text-decoration: line-through; color: #aaa; }
+    .list-meta { font-size: 11px; color: #888; }
+    .load-more { width: 100%; margin-top: 10px; padding: 10px; border: 1.5px solid #ddd; border-radius: 8px; background: white; color: #555; font-size: 13px; cursor: pointer; }
+    .load-more:hover { background: #f5f5f5; }
+
     /* Toast */
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #333; color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; transition: transform 0.3s ease; z-index: 200; pointer-events: none; }
     .toast.show { transform: translateX(-50%) translateY(0); }
@@ -113,11 +141,16 @@
   <select class="member-select" id="memberSelect">
     <option value="">── メンバーを選択 ──</option>
   </select>
-  <div class="month-nav">
+  <div class="month-nav" id="monthNav">
     <button class="month-nav-btn" id="prevMonth">‹</button>
     <div class="month-label" id="monthLabel">─</div>
     <button class="month-nav-btn" id="nextMonth">›</button>
   </div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn" id="tabList" onclick="switchTab('list')">📋 一覧</button>
+  <button class="tab-btn active" id="tabMonthly" onclick="switchTab('monthly')">📊 月報</button>
 </div>
 
 <div class="main" id="mainContent">
@@ -154,6 +187,101 @@ let members = loadMembers();
 let currentMonth = new Date();
 let currentRecords = [];
 let previewMode = 'report'; // 'report' | 'discord'
+let activeTab = 'monthly';
+let listFilterMonth = '';
+let listFilterCat = '';
+let listKeyword = '';
+let listVisible = 30;
+
+// ── Tab switch ─────────────────────────────────────
+window.switchTab = function(tab) {
+  activeTab = tab;
+  document.getElementById('tabList').classList.toggle('active', tab === 'list');
+  document.getElementById('tabMonthly').classList.toggle('active', tab === 'monthly');
+  document.getElementById('monthNav').style.display = tab === 'monthly' ? 'flex' : 'none';
+  if (currentRecords.length > 0) {
+    tab === 'list' ? renderList() : renderMonthly();
+  } else if (document.getElementById('memberSelect').value) {
+    fetchAndRender();
+  }
+};
+
+// ── List render ────────────────────────────────────
+function renderList() {
+  const lower = listKeyword.toLowerCase();
+  let recs = currentRecords.filter(r => {
+    const mStr = r.date ? r.date.substring(0,7) : '';
+    if (listFilterMonth && mStr !== listFilterMonth) return false;
+    if (listFilterCat && r.category !== listFilterCat) return false;
+    if (lower && !r.content.toLowerCase().includes(lower) &&
+        !(r.place && r.place.toLowerCase().includes(lower)) &&
+        !(r.note && r.note.toLowerCase().includes(lower))) return false;
+    return true;
+  });
+  recs.sort((a,b) => ((a.date||'')+(a.time||'')) < ((b.date||'')+(b.time||'')) ? -1 : 1);
+
+  // Month options from data
+  const rawMonths = [...new Set(currentRecords.map(r => r.date ? r.date.substring(0,7) : '').filter(Boolean))].sort((a,b) => b.localeCompare(a));
+  // Category options from data
+  const rawCats = [...new Set(currentRecords.map(r => r.category).filter(Boolean))];
+
+  const displayed = recs.slice(0, listVisible);
+
+  const monthOpts = rawMonths.map(m => {
+    const [y,mo] = m.split('-');
+    return `<option value="${m}" ${listFilterMonth===m?'selected':''}>${y}年${parseInt(mo)}月</option>`;
+  }).join('');
+
+  const catChips = ['', ...rawCats].map(c => {
+    const lbl = c || 'すべて';
+    const active = listFilterCat === c ? 'active' : '';
+    return `<button class="cat-chip ${active}" onclick="setListCat('${escHtml(c)}')">${escHtml(lbl)}</button>`;
+  }).join('');
+
+  const itemsHtml = displayed.map(r => {
+    const {m, day, wd} = formatDateParts(r.date);
+    const meta = [r.place && `📍${escHtml(r.place)}`, r.count && `👥${r.count}名`, r.note && `💬${escHtml(r.note)}`].filter(Boolean).join('　');
+    return `<div class="list-item">
+      <div class="list-date-col">
+        <div class="list-date-m">${m}月</div>
+        <div class="list-date-d">${day}</div>
+        <div class="list-date-wd">（${wd}）</div>
+        ${r.time ? `<div class="list-date-t">${r.time}</div>` : ''}
+      </div>
+      <div class="list-body">
+        <div class="list-cat">📌 ${escHtml(r.category||'')}</div>
+        <div class="list-text ${r.excludeFromReport?'excluded':''}">${escHtml(r.content)}</div>
+        ${meta ? `<div class="list-meta">${meta}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const moreBtn = recs.length > displayed.length
+    ? `<button class="load-more" onclick="listVisible+=30;renderList()">⬇️ もっと見る（残り${recs.length-displayed.length}件）</button>`
+    : '';
+
+  document.getElementById('mainContent').innerHTML = `
+    <div class="card">
+      <div class="list-filters">
+        <input class="search-input" type="search" placeholder="🔍 キーワードで検索" value="${escHtml(listKeyword)}" oninput="listKeyword=this.value;listVisible=30;renderList()" />
+        <div class="filter-row">
+          <select class="filter-select" onchange="listFilterMonth=this.value;listVisible=30;renderList()">
+            <option value="">📅 すべての期間</option>${monthOpts}
+          </select>
+        </div>
+        <div class="filter-row">${catChips}</div>
+      </div>
+      <div class="result-count">${recs.length}件${recs.length>displayed.length?'（表示中: '+displayed.length+'）':''}</div>
+      ${itemsHtml || '<div class="empty">該当する記録がありません</div>'}
+      ${moreBtn}
+    </div>`;
+}
+
+window.setListCat = function(cat) {
+  listFilterCat = cat;
+  listVisible = 30;
+  renderList();
+};
 
 // ── Persistence ────────────────────────────────────
 function loadMembers() {
@@ -236,7 +364,8 @@ async function fetchAndRender() {
     const data = await res.json();
     currentRecords = Array.isArray(data) ? data : (data.records || []);
     currentRecords.forEach(r => { if (r.count) r.count = parseInt(r.count); });
-    renderMonthly();
+    listVisible = 30;
+    activeTab === 'list' ? renderList() : renderMonthly();
   } catch(e) {
     document.getElementById('mainContent').innerHTML =
       `<div class="card"><div class="error-msg">⚠️ データの取得に失敗しました。<br>GAS URLを確認してください。<br><small>${escHtml(e.message)}</small></div></div>`;
@@ -412,13 +541,16 @@ window.deleteMember = function(id) {
 document.getElementById('prevMonth').addEventListener('click', () => {
   currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth()-1, 1);
   updateMonthLabel();
-  if (document.getElementById('memberSelect').value) renderMonthly();
+  if (currentRecords.length > 0) renderMonthly();
 });
 document.getElementById('nextMonth').addEventListener('click', () => {
   currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth()+1, 1);
   updateMonthLabel();
-  if (document.getElementById('memberSelect').value) renderMonthly();
+  if (currentRecords.length > 0) renderMonthly();
 });
+
+// ── Init tab state ─────────────────────────────────
+document.getElementById('monthNav').style.display = 'flex';
 
 // ── Member select ──────────────────────────────────
 document.getElementById('memberSelect').addEventListener('change', fetchAndRender);
