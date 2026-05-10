@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LogNote 管理者ビュー</title>
+  <style>
+    :root {
+      --forest: #2E5C55;
+      --moss: #4A7C74;
+      --mist: #D6E8E5;
+      --cream: #FDFBF7;
+      --ink: #2C2C2C;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--cream); color: var(--ink); }
+
+    /* Header */
+    .header { background: var(--forest); color: white; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .header-title { font-size: 18px; font-weight: bold; }
+    .header-sub { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+    .btn-settings { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+    .btn-settings:hover { background: rgba(255,255,255,0.3); }
+
+    /* Controls */
+    .controls { padding: 12px 16px; background: white; border-bottom: 1px solid #eee; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .member-select { flex: 1; min-width: 160px; padding: 8px 12px; border: 1.5px solid var(--mist); border-radius: 8px; font-size: 14px; background: white; color: var(--ink); cursor: pointer; }
+    .member-select:focus { outline: none; border-color: var(--forest); }
+    .month-nav { display: flex; align-items: center; gap: 8px; }
+    .month-nav-btn { background: none; border: 1.5px solid var(--mist); border-radius: 6px; width: 32px; height: 32px; cursor: pointer; font-size: 16px; color: var(--forest); display: flex; align-items: center; justify-content: center; }
+    .month-nav-btn:hover { background: var(--mist); }
+    .month-label { font-size: 14px; font-weight: bold; color: var(--forest); min-width: 90px; text-align: center; }
+
+    /* Main content */
+    .main { padding: 12px 16px; max-width: 700px; margin: 0 auto; }
+    .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+    .card-title { font-size: 13px; font-weight: bold; color: var(--forest); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+
+    /* Stats */
+    .stats-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+    .stat-card { flex: 1; min-width: 80px; background: var(--mist); border-radius: 8px; padding: 10px; text-align: center; }
+    .stat-num { font-size: 22px; font-weight: bold; color: var(--forest); }
+    .stat-label { font-size: 11px; color: var(--moss); margin-top: 2px; }
+
+    /* Monthly log */
+    .monthly-group { margin-bottom: 16px; }
+    .group-header { font-weight: bold; color: var(--forest); background: #f4f7f6; padding: 4px 8px; border-radius: 4px; margin-bottom: 6px; font-size: 14px; }
+    .log-item { display: flex; padding: 6px 0; border-bottom: 1px solid #eee; font-size: 14px; align-items: baseline; }
+    .log-time { width: 45px; font-size: 11px; color: #888; flex-shrink: 0; }
+    .log-content { flex: 1; }
+    .log-note { font-size: 11px; color: #888; margin-top: 2px; padding-left: 22px; }
+    .log-meta { font-size: 12px; color: #666; }
+    .empty { text-align: center; color: #ccc; padding: 24px; }
+
+    /* Output */
+    .mode-btns { display: flex; gap: 6px; }
+    .mode-btn { padding: 4px 10px; font-size: 12px; border-radius: 4px; cursor: pointer; border: 1.5px solid var(--forest); background: white; color: var(--forest); }
+    .mode-btn.active-report { background: var(--forest); color: white; }
+    .mode-btn.active-discord { background: #5865F2; color: white; border-color: #5865F2; }
+    .mode-btn.discord { border-color: #5865F2; color: #5865F2; }
+    .export-area { background: #f8f8f8; border-radius: 8px; padding: 10px; font-size: 12px; white-space: pre-wrap; max-height: 180px; overflow-y: auto; line-height: 1.6; color: #444; margin-top: 10px; }
+    .btn-copy { margin-top: 10px; width: 100%; padding: 10px; border: 1.5px solid var(--forest); background: white; color: var(--forest); border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold; }
+    .btn-copy:hover { background: var(--mist); }
+    .btn-copy.discord-copy { border-color: #5865F2; color: #5865F2; }
+    .btn-copy.discord-copy:hover { background: #eef0ff; }
+    .hint { margin-top: 8px; padding: 8px 12px; background: #fff3cd; border-radius: 8px; font-size: 11px; color: #856404; line-height: 1.5; }
+
+    /* Loading / Error */
+    .loading { text-align: center; padding: 32px; color: var(--moss); }
+    .error-msg { text-align: center; padding: 20px; color: #c0392b; font-size: 13px; background: #fdecea; border-radius: 8px; }
+
+    /* Settings overlay */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; display: none; }
+    .overlay.open { display: block; }
+    .settings-panel { position: fixed; top: 0; right: -360px; width: 340px; height: 100%; background: white; z-index: 101; box-shadow: -4px 0 20px rgba(0,0,0,0.15); transition: right 0.25s ease; display: flex; flex-direction: column; }
+    .settings-panel.open { right: 0; }
+    .settings-header { background: var(--forest); color: white; padding: 16px; font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: space-between; }
+    .btn-close { background: none; border: none; color: white; font-size: 20px; cursor: pointer; line-height: 1; }
+    .settings-body { padding: 16px; overflow-y: auto; flex: 1; }
+    .settings-label { font-size: 12px; font-weight: bold; color: var(--moss); margin-bottom: 4px; margin-top: 12px; }
+    .settings-input { width: 100%; padding: 8px 10px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; }
+    .settings-input:focus { outline: none; border-color: var(--forest); }
+    .btn-add { width: 100%; margin-top: 10px; padding: 10px; background: var(--forest); color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold; }
+    .btn-add:hover { background: var(--moss); }
+    .divider { border: none; border-top: 1px solid #eee; margin: 16px 0; }
+    .member-list-title { font-size: 13px; font-weight: bold; color: var(--ink); margin-bottom: 8px; }
+    .member-item { display: flex; align-items: center; gap: 8px; padding: 10px; background: #f8f8f8; border-radius: 8px; margin-bottom: 6px; }
+    .member-item-name { font-size: 14px; font-weight: bold; flex: 1; }
+    .member-item-url { font-size: 10px; color: #999; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
+    .btn-del { background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 18px; flex-shrink: 0; padding: 2px; line-height: 1; }
+    .no-members { text-align: center; color: #aaa; font-size: 13px; padding: 20px; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #333; color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; transition: transform 0.3s ease; z-index: 200; pointer-events: none; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 480px) {
+      .settings-panel { width: 100%; right: -100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">🗂 LogNote 管理者ビュー</div>
+    <div class="header-sub">メンバーの月報を確認</div>
+  </div>
+  <button class="btn-settings" id="btnOpenSettings">⚙ メンバー設定</button>
+</div>
+
+<div class="controls">
+  <select class="member-select" id="memberSelect">
+    <option value="">── メンバーを選択 ──</option>
+  </select>
+  <div class="month-nav">
+    <button class="month-nav-btn" id="prevMonth">‹</button>
+    <div class="month-label" id="monthLabel">─</div>
+    <button class="month-nav-btn" id="nextMonth">›</button>
+  </div>
+</div>
+
+<div class="main" id="mainContent">
+  <div class="empty">⬆️ メンバーを選択してください</div>
+</div>
+
+<!-- Settings overlay -->
+<div class="overlay" id="overlay"></div>
+<div class="settings-panel" id="settingsPanel">
+  <div class="settings-header">
+    <span>⚙ メンバー設定</span>
+    <button class="btn-close" id="btnCloseSettings">✕</button>
+  </div>
+  <div class="settings-body">
+    <div class="settings-label">名前</div>
+    <input class="settings-input" type="text" id="inputName" placeholder="例: 田中" maxlength="20" />
+    <div class="settings-label">GAS Web App URL</div>
+    <input class="settings-input" type="url" id="inputUrl" placeholder="https://script.google.com/..." />
+    <button class="btn-add" id="btnAddMember">＋ メンバーを追加</button>
+    <hr class="divider" />
+    <div class="member-list-title">登録済みメンバー</div>
+    <div id="memberListEl"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'admin_members';
+const WEEKDAYS = ['日','月','火','水','木','金','土'];
+
+// ── State ──────────────────────────────────────────
+let members = loadMembers();
+let currentMonth = new Date();
+let currentRecords = [];
+let previewMode = 'report'; // 'report' | 'discord'
+
+// ── Persistence ────────────────────────────────────
+function loadMembers() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+function saveMembers() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
+}
+
+// ── UI helpers ─────────────────────────────────────
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function formatDateParts(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return { m: d.getMonth()+1, day: d.getDate(), wd: WEEKDAYS[d.getDay()] };
+}
+
+// ── Members dropdown ───────────────────────────────
+function renderMemberSelect() {
+  const sel = document.getElementById('memberSelect');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">── メンバーを選択 ──</option>';
+  members.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.name;
+    sel.appendChild(opt);
+  });
+  if (members.find(m => m.id === current)) sel.value = current;
+}
+
+function renderMemberList() {
+  const el = document.getElementById('memberListEl');
+  if (members.length === 0) {
+    el.innerHTML = '<div class="no-members">メンバーが登録されていません</div>';
+    return;
+  }
+  el.innerHTML = members.map(m => `
+    <div class="member-item">
+      <div>
+        <div class="member-item-name">👤 ${escHtml(m.name)}</div>
+        <div class="member-item-url">${escHtml(m.gasUrl)}</div>
+      </div>
+      <button class="btn-del" onclick="deleteMember('${m.id}')" title="削除">🗑</button>
+    </div>
+  `).join('');
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Month label ────────────────────────────────────
+function updateMonthLabel() {
+  document.getElementById('monthLabel').textContent =
+    `${currentMonth.getFullYear()}年${currentMonth.getMonth()+1}月`;
+}
+
+// ── Fetch data ─────────────────────────────────────
+async function fetchAndRender() {
+  const sel = document.getElementById('memberSelect');
+  const memberId = sel.value;
+  if (!memberId) {
+    document.getElementById('mainContent').innerHTML = '<div class="empty">⬆️ メンバーを選択してください</div>';
+    return;
+  }
+  const member = members.find(m => m.id === memberId);
+  if (!member) return;
+
+  document.getElementById('mainContent').innerHTML = '<div class="loading">⟳ データを読み込み中...</div>';
+  try {
+    const res = await fetch(member.gasUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    currentRecords = Array.isArray(data) ? data : (data.records || []);
+    currentRecords.forEach(r => { if (r.count) r.count = parseInt(r.count); });
+    renderMonthly();
+  } catch(e) {
+    document.getElementById('mainContent').innerHTML =
+      `<div class="card"><div class="error-msg">⚠️ データの取得に失敗しました。<br>GAS URLを確認してください。<br><small>${escHtml(e.message)}</small></div></div>`;
+  }
+}
+
+// ── Monthly render ─────────────────────────────────
+function renderMonthly() {
+  const y = currentMonth.getFullYear();
+  const m = currentMonth.getMonth() + 1;
+
+  const allMonthRecs = currentRecords.filter(r => {
+    const d = new Date(r.date);
+    return d.getFullYear() === y && d.getMonth()+1 === m;
+  }).sort((a,b) => a.date > b.date ? 1 : -1);
+
+  const reportRecs = allMonthRecs.filter(r => !r.excludeFromReport);
+
+  const days = new Set(reportRecs.map(r => r.date)).size;
+  const people = reportRecs.reduce((s, r) => s + (r.count || 0), 0);
+
+  // Group by date
+  const grouped = {};
+  allMonthRecs.forEach(r => {
+    if (!grouped[r.date]) grouped[r.date] = [];
+    grouped[r.date].push(r);
+  });
+
+  // Export texts
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const reportLines = [];
+  const discordLines = [`**【${y}年${m}月 活動報告】**\n`];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const {m: mm, day: dd, wd: w} = formatDateParts(ds);
+    const hdr = `${mm}/${dd}(${w})`;
+    const dayRecs = reportRecs.filter(r => r.date === ds);
+    let content = '';
+    if (dayRecs.length > 0) {
+      content = dayRecs.map(r => {
+        let line = r.content;
+        if (r.place) line += `（${r.place}）`;
+        const extras = [];
+        if (r.count) extras.push(`👥${r.count}名`);
+        if (r.note) extras.push(`※${r.note}`);
+        if (extras.length) line += ` ${extras.join(' ')}`;
+        return line;
+      }).join('、');
+    }
+    reportLines.push(content);
+    discordLines.push(`**${hdr}**`);
+    dayRecs.forEach(r => {
+      let line = `> ・${r.content}`;
+      if (r.note) line += ` ※${r.note}`;
+      discordLines.push(line);
+    });
+    discordLines.push('');
+  }
+  const exportText = reportLines.join('\n');
+  const discordText = discordLines.join('\n');
+
+  // Build HTML
+  let logHtml = '';
+  if (allMonthRecs.length === 0) {
+    logHtml = '<div class="empty">この月の記録はありません</div>';
+  } else {
+    Object.entries(grouped).forEach(([date, recs]) => {
+      const {day, wd} = formatDateParts(date);
+      const items = recs.map(r => `
+        <div class="log-item">
+          <div class="log-time">${r.time || '--:--'}</div>
+          <div class="log-content">
+            <span style="margin-right:6px">📌</span>
+            <span style="font-weight:500;${r.excludeFromReport ? 'text-decoration:line-through;color:#aaa' : ''}">${escHtml(r.content)}</span>
+            <span class="log-meta">${[r.place ? `📍${escHtml(r.place)}` : '', r.count ? `👥${r.count}名` : ''].filter(Boolean).join(' ')}</span>
+            ${r.note ? `<div class="log-note">Note: ${escHtml(r.note)}</div>` : ''}
+          </div>
+        </div>
+      `).join('');
+      logHtml += `<div class="monthly-group"><div class="group-header">${day}日（${wd}）</div>${items}</div>`;
+    });
+  }
+
+  document.getElementById('mainContent').innerHTML = `
+    <div class="card">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num">${days}</div><div class="stat-label">活動日数</div></div>
+        <div class="stat-card"><div class="stat-num">${people}</div><div class="stat-label">延べ参加者</div></div>
+        <div class="stat-card"><div class="stat-num">${allMonthRecs.length}</div><div class="stat-label">総記録件数</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">月間活動ログ</div>
+      ${logHtml}
+    </div>
+    <div class="card">
+      <div class="card-title">
+        <span>出力</span>
+        <div class="mode-btns">
+          <button class="mode-btn ${previewMode==='report'?'active-report':''}" id="btnReport">報告書</button>
+          <button class="mode-btn discord ${previewMode==='discord'?'active-discord':''}" id="btnDiscord">Discord</button>
+        </div>
+      </div>
+      <div class="export-area" id="exportArea">${escHtml(previewMode==='report' ? exportText : discordText)}</div>
+      <button class="btn-copy ${previewMode==='discord'?'discord-copy':''}" id="btnCopy">
+        📋 ${previewMode==='report' ? '報告書用コピー' : 'Discord形式でコピー'}
+      </button>
+      ${previewMode==='report' ? `
+        <div class="hint">💡 <strong>報告書への貼り付け方：</strong>スプレッドシートの<strong>活動内容列の最初のセル</strong>（例：C9）を選択して貼り付けてください。</div>
+      ` : ''}
+    </div>
+  `;
+
+  // Attach mode toggle events
+  document.getElementById('btnReport').addEventListener('click', () => { previewMode = 'report'; renderMonthly(); });
+  document.getElementById('btnDiscord').addEventListener('click', () => { previewMode = 'discord'; renderMonthly(); });
+
+  // Copy
+  document.getElementById('btnCopy').addEventListener('click', () => {
+    const text = previewMode === 'report' ? exportText : discordText;
+    const label = previewMode === 'report' ? '報告書用テキスト' : 'Discord用テキスト';
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => showToast(`📋 ${label}をコピーしました`));
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast(`📋 ${label}をコピーしました`);
+    }
+  });
+}
+
+// ── Settings panel ─────────────────────────────────
+document.getElementById('btnOpenSettings').addEventListener('click', () => {
+  document.getElementById('settingsPanel').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+});
+function closeSettings() {
+  document.getElementById('settingsPanel').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+document.getElementById('btnCloseSettings').addEventListener('click', closeSettings);
+document.getElementById('overlay').addEventListener('click', closeSettings);
+
+document.getElementById('btnAddMember').addEventListener('click', () => {
+  const name = document.getElementById('inputName').value.trim();
+  const gasUrl = document.getElementById('inputUrl').value.trim();
+  if (!name) { showToast('⚠️ 名前を入力してください'); return; }
+  if (!gasUrl.startsWith('https://')) { showToast('⚠️ 有効なURLを入力してください'); return; }
+  const id = 'mbr_' + Date.now();
+  members.push({ id, name, gasUrl });
+  saveMembers();
+  document.getElementById('inputName').value = '';
+  document.getElementById('inputUrl').value = '';
+  renderMemberSelect();
+  renderMemberList();
+  showToast(`✅ ${name} を追加しました`);
+});
+
+window.deleteMember = function(id) {
+  const m = members.find(x => x.id === id);
+  if (!m) return;
+  if (!confirm(`「${m.name}」を削除しますか？`)) return;
+  members = members.filter(x => x.id !== id);
+  saveMembers();
+  renderMemberSelect();
+  renderMemberList();
+  showToast('🗑 削除しました');
+};
+
+// ── Month nav ──────────────────────────────────────
+document.getElementById('prevMonth').addEventListener('click', () => {
+  currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth()-1, 1);
+  updateMonthLabel();
+  if (document.getElementById('memberSelect').value) renderMonthly();
+});
+document.getElementById('nextMonth').addEventListener('click', () => {
+  currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth()+1, 1);
+  updateMonthLabel();
+  if (document.getElementById('memberSelect').value) renderMonthly();
+});
+
+// ── Member select ──────────────────────────────────
+document.getElementById('memberSelect').addEventListener('change', fetchAndRender);
+
+// ── Init ───────────────────────────────────────────
+updateMonthLabel();
+renderMemberSelect();
+renderMemberList();
+</script>
+</body>
+</html>
