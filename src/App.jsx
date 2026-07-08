@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { WEEKDAYS, loadCategories, saveCategories, loadTheme, saveTheme, applyTheme, DEFAULT_CATEGORIES, APP_VERSION, CHANGELOG } from './utils';
 import RecordTab from './components/RecordTab';
 import ListTab from './components/ListTab';
@@ -17,6 +17,10 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [gasUrl, setGasUrl] = useState(() => localStorage.getItem('gas_webapp_url') || '');
   const [isSyncing, setIsSyncing] = useState(false);
+  // fetchFromGas による setRecords が syncToGas を誤発火させないためのフラグ
+  const isFetchingFromGas = useRef(false);
+  // 初回マウント時のローカルデータをGASに送らないためのフラグ
+  const isInitialMount = useRef(true);
   const [currentTheme, setCurrentTheme] = useState(() => {
     const saved = loadTheme();
     applyTheme(saved);
@@ -71,6 +75,13 @@ function App() {
 
   // Sync to GAS when records change (Debounced to avoid too many requests)
   useEffect(() => {
+    // 初回マウント時はスキップ（localStorageの古いデータでGASを上書きしないため）
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    // fetchFromGas による受信データの変更はGASへ送り返さない
+    if (isFetchingFromGas.current) return;
     if (!gasUrl || records.length === 0) return;
 
     const timer = setTimeout(() => {
@@ -137,7 +148,11 @@ function App() {
           return dateA > dateB ? -1 : 1;
         });
 
+        // フラグを立ててから setRecords → syncToGas の誤発火を防止
+        isFetchingFromGas.current = true;
         setRecords(fetchedRecords);
+        // React の state 更新は非同期なので、次のマイクロタスクでフラグを戻す
+        setTimeout(() => { isFetchingFromGas.current = false; }, 0);
         console.log('[GAS] Local records updated from SpreadSheet');
       } else {
         console.log('[GAS] No data in SpreadSheet or empty array');
