@@ -9,15 +9,13 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     {
-      name: 'copy-static-folders',
+      name: 'copy-lp-folder',
       closeBundle() {
-        for (const dir of ['lp', 'music']) {
-          const src = path.resolve(process.cwd(), dir);
-          const dest = path.resolve(process.cwd(), 'dist', dir);
-          if (fs.existsSync(src)) {
-            fs.cpSync(src, dest, { recursive: true });
-            console.log(`✓ Copied ${dir}/ to dist/${dir}/`);
-          }
+        const src = path.resolve(process.cwd(), 'lp');
+        const dest = path.resolve(process.cwd(), 'dist', 'lp');
+        if (fs.existsSync(src)) {
+          fs.cpSync(src, dest, { recursive: true });
+          console.log('✓ Copied lp/ to dist/lp/');
         }
       }
     },
@@ -25,7 +23,7 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512-real.png', 'icon-512.png', 'icon.svg'],
       workbox: {
-        navigateFallbackDenylist: [/^\/katsudo-log\/lp\//, /^\/katsudo-log\/music\//, /\/music\//, /\/help\.html$/],
+        navigateFallbackDenylist: [/^\/katsudo-log\/lp\//, /\/help\.html$/],
       },
       manifest: {
         name: 'LogNote',
