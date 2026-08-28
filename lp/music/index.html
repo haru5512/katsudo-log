@@ -621,6 +621,7 @@ function loadScript(src){
 }
 
 function loadTone(){
+  if (window.Tone) return Promise.resolve(true);   // 埋め込み版などで既に読み込み済みの場合
   var i = 0;
   function next(){
     if (i >= TONE_CDNS.length) return Promise.reject(new Error('tone'));
